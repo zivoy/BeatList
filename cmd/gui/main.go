@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"image"
 	"io"
+	"log"
 	"math"
 	"net/url"
 	"os"
@@ -83,6 +84,23 @@ func main() {
 	a.Settings().SetTheme(theme.DarkTheme())
 	window.SetIcon(resourceIconPng)
 	window.Resize(fyne.NewSize(750, 950))
+
+	CacheDir, _ = storage.Child(a.Storage().RootURI(), "Cache")
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	logFile, _ := storage.Child(a.Storage().RootURI(), "latest.log")
+	_ = storage.Delete(logFile)
+	f, err := storage.Writer(logFile)
+	if err != nil {
+		log.Fatalf("error opening file: %v", err)
+	}
+	defer func(f fyne.URIWriteCloser) {
+		err := f.Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}(f)
+	multi := io.MultiWriter(f, os.Stdout)
+	log.SetOutput(multi)
 
 	executable, err := os.Executable()
 	loc := "playlist.bplist"

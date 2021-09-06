@@ -2,6 +2,8 @@ package beatsaver
 
 import (
 	"encoding/json"
+	"errors"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -92,26 +94,33 @@ func GetMapFromID(id string) (Map, error) {
 	return getMap(apiRoot + "/maps/id/" + id)
 }
 
-func getMap(url string) (Map, error) { // todo save to tmp folder
-	m := Map{}
-
+func getMap(url string) (Map, error) {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return m, err
+		return Map{}, err
 	}
 
 	req.Header.Set("User-Agent", "BeatList")
 
 	res, err := client.Do(req)
 	if err != nil {
-		return m, err
+		return Map{}, err
 	}
 
 	if res.Body != nil {
 		defer res.Body.Close()
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
+	if res.StatusCode == http.StatusNotFound {
+		return Map{}, errors.New("404 encountered")
+	}
+	return ReadMap(res.Body)
+}
+
+func ReadMap(s io.Reader) (Map, error) {
+	m := Map{}
+
+	body, err := ioutil.ReadAll(s)
 	if err != nil {
 		return m, err
 	}
@@ -121,4 +130,16 @@ func getMap(url string) (Map, error) { // todo save to tmp folder
 		return m, err
 	}
 	return m, nil
+}
+
+func (m Map) StoreMap(w io.Writer) error {
+	mar, err := json.Marshal(m)
+	if err != nil {
+		return err
+	}
+	_, err = w.Write(mar)
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -38,13 +38,14 @@ import (
 const VERSION = "0.0.1"
 const imageSize = 256 // 256 by 256 pixels
 var BeatSaverRe = regexp.MustCompile(`(?i)(?:(?:beatsaver\.com/maps/)|(?:!bsr ))?([[0-9A-F]+).*`)
-
 var playlistFilter = storage.NewExtensionFileFilter([]string{".json", ".bplist"})
 
 var activePlaylist playlist.Playlist
+
 var lastOpened fyne.URI
 var window fyne.Window
 var defaultLoc fyne.URI
+var CacheDir fyne.URI
 
 type SongDiffs struct {
 	chars []string
@@ -85,7 +86,6 @@ func main() {
 	window.SetIcon(resourceIconPng)
 	window.Resize(fyne.NewSize(750, 950))
 
-	CacheDir, _ = storage.Child(a.Storage().RootURI(), "Cache")
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	logFile, _ := storage.Child(a.Storage().RootURI(), "latest.log")
 	_ = storage.Delete(logFile)
@@ -101,6 +101,13 @@ func main() {
 	}(f)
 	multi := io.MultiWriter(f, os.Stdout)
 	log.SetOutput(multi)
+
+	CacheDir = storage.NewFileURI(filepath.Join(os.TempDir(), "BeatList"))
+	err = os.MkdirAll(CacheDir.Path(), os.ModePerm)
+	if err != nil {
+		CacheDir, _ = storage.Child(a.Storage().RootURI(), "Cache")
+		_ = os.MkdirAll(CacheDir.Path(), os.ModePerm)
+	}
 
 	executable, err := os.Executable()
 	loc := "playlist.bplist"
@@ -182,25 +189,9 @@ func main() {
 		ui.SongDiffText.Show()
 		ui.SongDiffDropDown.Hide()
 
-		if song.BeatSaverKey == "" {
-			// update info
-			mapInfo, err := beatsaver.GetMap(song.Hash)
-			if err == nil {
-				song.SongName = mapInfo.Metadata.SongName
-				song.BeatSaverKey = mapInfo.Id
-				song.LevelAuthorName = mapInfo.Metadata.LevelAuthorName
-
-				for _, i := range mapInfo.Versions {
-					if strings.EqualFold(i.Hash, song.Hash) {
-						songDiffs[song.Hash] = AddVersionChars(i.Diffs) //todo run on load / save info on songs
-						break
-					}
-				}
-
-				changes(true)
-				Songs.Refresh()
-			}
-		}
+		// update info
+		updateSongInfo(song)
+		Songs.Refresh()
 
 		if details, ok := songDiffs[song.Hash]; ok {
 			ui.SongDiffChecks.Show()
@@ -525,6 +516,9 @@ func loadLastSession() {
 		}
 		changes(true)
 
+		// load info on songs
+		go loadAll(activePlaylist.Songs)
+
 		_ = r.Close()
 		_ = storage.Delete(lastOpened)
 		fyne.CurrentApp().Preferences().SetString("lastOpened", "")
@@ -576,6 +570,10 @@ func openMenu() {
 				dialog.ShowError(err, window)
 				return
 			}
+
+			// load info on songs
+			go loadAll(p.Songs)
+
 			lastOpened = closer.URI()
 			activePlaylist = p
 			ui.refresh()
@@ -713,4 +711,75 @@ func AddVersionChars(mapData []beatsaver.MapVersion) SongDiffs {
 	}
 
 	return SongDiffs{chars: availableChars, diffs: diffs}
+}
+
+// todo add progress bar to caching
+func updateSongInfo(s *playlist.Song) {
+	songInf, _ := storage.Child(CacheDir, s.Hash)
+	var mapInfo beatsaver.Map
+	exists, err := storage.Exists(songInf)
+	if err == nil && exists {
+		r, _ := storage.Reader(songInf)
+		mapInfo, err = beatsaver.ReadMap(r)
+		_ = r.Close()
+		if mapInfo.Id == "" || err != nil {
+			_ = storage.Delete(songInf)
+			log.Printf("%s encountered an error or was blank, %e", s.Hash, err)
+			return
+		}
+	} else {
+		if err != nil {
+			log.Println(err)
+		}
+		mapInfo, err = beatsaver.GetMap(s.Hash)
+		if err == nil {
+			w, e1 := storage.Writer(songInf)
+			if w != nil {
+				defer func(w fyne.URIWriteCloser) {
+					err := w.Close()
+					if err != nil {
+						log.Println(err)
+					}
+				}(w)
+			}
+			if e1 != nil {
+				log.Println(e1)
+			} else {
+				e1 = mapInfo.StoreMap(w)
+				if e1 != nil {
+					log.Println(e1)
+				}
+			}
+		}
+	}
+
+	if err == nil {
+		if s.SongName != mapInfo.Metadata.SongName {
+			s.SongName = mapInfo.Metadata.SongName
+			changes(true)
+		}
+		if s.BeatSaverKey != mapInfo.Id {
+			s.BeatSaverKey = mapInfo.Id
+			changes(true)
+		}
+		if s.LevelAuthorName != mapInfo.Metadata.LevelAuthorName {
+			s.LevelAuthorName = mapInfo.Metadata.LevelAuthorName
+			changes(true)
+		}
+
+		for _, i := range mapInfo.Versions {
+			if strings.EqualFold(i.Hash, s.Hash) {
+				songDiffs[s.Hash] = AddVersionChars(i.Diffs)
+				break
+			}
+		}
+	} else {
+		log.Println(err)
+	}
+}
+
+func loadAll(songs []*playlist.Song) {
+	for _, s := range songs {
+		updateSongInfo(s)
+	}
 }

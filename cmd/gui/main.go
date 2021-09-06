@@ -580,7 +580,7 @@ func newFile() {
 
 func updateDialog(latest string) {
 	dialog.ShowCustomConfirm("Update", "Download", "Don't update", widget.NewLabel(
-		fmt.Sprintf("%s is not latest, you should upgrade to %s", VERSION, latest)), func(b bool) {
+		fmt.Sprintf("v%s is not latest, you should upgrade to v%s", VERSION, latest)), func(b bool) {
 		if b {
 			updateUrl, _ := url.Parse("https://github.com/zivoy/BeatList/releases/latest")
 			err := fyne.CurrentApp().OpenURL(updateUrl)

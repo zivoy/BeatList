@@ -397,12 +397,32 @@ func main() {
 				}
 			}),
 			fyne.NewMenuItem("About", func() {
-				//aboutW := a.NewWindow("About")
-				ytUrl, _ := url.Parse("https://www.youtube.com/watch?v=dQw4w9WgXcQ") //todo make an actual about page
-				_ = a.OpenURL(ytUrl)
-				//aboutW.SetContent()
-				//aboutW.Resize(fyne.NewSize(480, 480))
-				//aboutW.Show()
+				aboutW := a.NewWindow("About")
+				cont := container.NewVBox()
+				l := widget.NewLabel("BeatList a BeatSaber playlist creator")
+				l.Alignment = fyne.TextAlignCenter
+				l.Wrapping = fyne.TextWrapWord
+				cont.Add(l)
+				github, _ := url.Parse("https://github.com/zivoy/BeatList/")
+				h := widget.NewHyperlink("BeatList GitHub page", github)
+				h.Alignment = fyne.TextAlignCenter
+				cont.Add(h)
+
+				l = widget.NewLabel("You can get the PlayList manager mod to use the playlists in game")
+				l.Alignment = fyne.TextAlignCenter
+				l.Wrapping = fyne.TextWrapWord
+				cont.Add(l)
+				github, _ = url.Parse("https://github.com/rithik-b/PlaylistManager")
+				h = widget.NewHyperlink("PlaylistManager GitHub page", github)
+				h.Alignment = fyne.TextAlignCenter
+				cont.Add(h)
+				b := widget.NewButton("Ok", func() {
+					aboutW.Close()
+				})
+				cont.Add(b)
+				aboutW.SetContent(cont)
+				aboutW.Resize(fyne.NewSize(500, 150))
+				aboutW.Show()
 			})),
 	))
 

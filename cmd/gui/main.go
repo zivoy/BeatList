@@ -75,6 +75,7 @@ type UI struct {
 	SongId                                          *widget.Hyperlink
 	SongDiffs, SongDiffChecks                       *fyne.Container
 	SongDiffDropDown                                *widget.Select
+	Songs                                           *widget.List
 }
 
 var ui UI
@@ -139,7 +140,7 @@ func main() {
 	ui.Image = canvas.NewImageFromImage(image.Rect(0, 0, 0, 0))
 	ui.Image.SetMinSize(fyne.NewSize(128, 128))
 
-	Songs := widget.NewList(func() int {
+	ui.Songs = widget.NewList(func() int {
 		return len(activePlaylist.Songs)
 	}, func() fyne.CanvasObject {
 		return widget.NewLabel("")
@@ -177,10 +178,18 @@ func main() {
 	)
 	var selected widget.ListItemID
 	var selectedS bool
-	Songs.OnUnselected = func(id widget.ListItemID) {
+	ui.Songs.OnUnselected = func(id widget.ListItemID) {
 		selectedS = false
+		ui.SongDiffChecks.Hide()
+		ui.SongDiffText.Show()
+		ui.SongDiffDropDown.Hide()
+
+		ui.SongName.SetText("")
+		ui.SongDiffText.SetText("")
+		ui.SongMapper.SetText("")
+		ui.SongId.SetText("")
 	}
-	Songs.OnSelected = func(id widget.ListItemID) {
+	ui.Songs.OnSelected = func(id widget.ListItemID) {
 		selected = id
 		selectedS = true
 		song := activePlaylist.Songs[id]
@@ -191,7 +200,7 @@ func main() {
 
 		// update info
 		updateSongInfo(song)
-		Songs.Refresh()
+		ui.Songs.Refresh()
 
 		if details, ok := songDiffs[song.Hash]; ok {
 			ui.SongDiffChecks.Show()
@@ -290,39 +299,40 @@ func main() {
 						})
 						songDiffs[version.Hash] = AddVersionChars(version.Diffs)
 						changes(true)
-						Songs.Refresh()
+						ui.Songs.Refresh()
 					}
 				}, window)
 		}),
 		widget.NewToolbarAction(theme.CancelIcon(), func() {
 			if selectedS {
 				activePlaylist.Songs = append(activePlaylist.Songs[:selected], activePlaylist.Songs[selected+1:]...)
-				Songs.Select(widget.ListItemID(math.Max(0, float64(selected-1))))
-				Songs.Refresh()
+				ui.Songs.Select(widget.ListItemID(math.Max(0, float64(selected-1))))
+				ui.Songs.Refresh()
 			}
 		}),
 		widget.NewToolbarSpacer(),
 		widget.NewToolbarAction(theme.MoveUpIcon(), func() {
 			if selected > 0 {
 				activePlaylist.Songs[selected-1], activePlaylist.Songs[selected] = activePlaylist.Songs[selected], activePlaylist.Songs[selected-1]
-				Songs.Select(selected - 1)
-				Songs.Refresh()
+				ui.Songs.Select(selected - 1)
+				ui.Songs.Refresh()
 			}
 		}),
 		widget.NewToolbarAction(theme.MoveDownIcon(), func() {
 			if selected < len(activePlaylist.Songs)-1 {
 				activePlaylist.Songs[selected+1], activePlaylist.Songs[selected] = activePlaylist.Songs[selected], activePlaylist.Songs[selected+1]
-				Songs.Select(selected + 1)
-				Songs.Refresh()
+				ui.Songs.Select(selected + 1)
+				ui.Songs.Refresh()
 			}
 		}),
 	)
 
 	var songContainer *fyne.Container
 	if fyne.CurrentDevice().IsMobile() {
-		songContainer = container.NewMax(container.NewVSplit(container.NewBorder(nil, songListBar, nil, nil, Songs), songInfo))
+		songContainer = container.NewMax(container.NewVSplit(
+			container.NewBorder(nil, songListBar, nil, nil, ui.Songs), songInfo))
 	} else {
-		Split := container.NewHSplit(Songs, container.NewHScroll(songInfo))
+		Split := container.NewHSplit(ui.Songs, container.NewHScroll(songInfo))
 		Split.Offset = .4
 		songContainer = container.NewBorder(nil, songListBar, nil, nil, Split)
 	}
@@ -621,8 +631,11 @@ func (u UI) refresh() {
 	ui.SyncURL.SetText(activePlaylist.CustomData.SyncURL)
 	ui.ArchiveURL.SetText(activePlaylist.CustomData.ArchiveURL)
 
-	// todo refresh the song diff stuff
-	//ui.SongDiffs.Refresh()
+	ui.SongDiffChecks.Hide()
+	ui.SongDiffText.Show()
+	ui.SongDiffDropDown.Hide()
+	ui.Songs.Select(0)
+	ui.Songs.Unselect(0)
 }
 
 func imageToBase64(reader io.Reader) (image.Image, string, error) {

@@ -158,7 +158,7 @@ func main() {
 	CharacteristicOptions := make([]string, 0)
 	ui.SongDiffDropDown = widget.NewSelect(CharacteristicOptions, func(_ string) {})
 	ui.SongDiffDropDown.Hide()
-	ui.SongDiffChecks = container.NewHBox(
+	ui.SongDiffChecks = container.NewHBox( // todo change this to allow wrapping
 		widget.NewCheck("Easy", func(_ bool) {}),
 		widget.NewCheck("Normal", func(_ bool) {}),
 		widget.NewCheck("Hard", func(_ bool) {}),
@@ -199,7 +199,7 @@ func main() {
 			ui.SongDiffDropDown.Show()
 
 			CharacteristicOptions = details.chars
-			//copy(CharacteristicOptions, details.chars)
+			ui.SongDiffDropDown.Options = CharacteristicOptions
 			ui.SongDiffDropDown.Selected = CharacteristicOptions[0]
 
 			songDetails := details
@@ -778,6 +778,7 @@ func updateSongInfo(s *playlist.Song) {
 	}
 }
 
+// todo group requests
 func loadAll(songs []*playlist.Song) {
 	for _, s := range songs {
 		updateSongInfo(s)

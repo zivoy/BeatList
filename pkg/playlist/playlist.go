@@ -19,9 +19,24 @@ type CustomData struct {
 }
 
 type Difficulties struct {
-	Characteristic string `json:"characteristic"` // easy, normal, hard, expert, expertPlus
-	Name           string `json:"name"`           // Standard, OneSaber, NoArrows, 360Degree, 90Degree, Lawless
+	Characteristic string `json:"characteristic"` // Standard, OneSaber, NoArrows, 360Degree, 90Degree, Lawless
+	Name           string `json:"name"`           // easy, normal, hard, expert, expertPlus
 }
+
+const (
+	DifficultyEasy       = "easy"
+	DifficultyNormal     = "normal"
+	DifficultyHard       = "hard"
+	DifficultyExpert     = "expert"
+	DifficultyExpertPlus = "expertPlus"
+
+	CharacteristicStandard  = "Standard"
+	CharacteristicOneSaber  = "OneSaber"
+	CharacteristicNoArrows  = "NoArrows"
+	Characteristic360Degree = "360Degree"
+	Characteristic90Degree  = "90Degree"
+	CharacteristicLawless   = "Lawless"
+)
 
 type Song struct {
 	Hash            string          `json:"hash"`    //REQUIRED FOR CUSTOM SONGS

@@ -143,6 +143,7 @@ func main() {
 	}
 	ui.Description.SetPlaceHolder("(Optional)")
 	ui.Image = canvas.NewImageFromImage(playlist.DefaultImage())
+	ui.Image.Hide()
 	ui.Image.SetMinSize(fyne.NewSize(128, 128))
 
 	imgMinSize := fyne.NewSize(64, 64)
@@ -441,6 +442,7 @@ func main() {
 					activePlaylist.Cover = cover
 					ui.Image.Image = canvas.NewImageFromImage(cover.GetImage()).Image
 					ui.Image.Refresh()
+					ui.Image.Show()
 					changes(true)
 				}, window)
 				d.SetFilter(storage.NewMimeTypeFileFilter([]string{"image/png", "image/jpeg"})) //"image/gif"}))
@@ -726,8 +728,13 @@ func (u UI) refresh() {
 	ui.Author.SetText(activePlaylist.Author)
 	ui.Description.SetText(activePlaylist.Description)
 	ui.Title.SetText(activePlaylist.Title)
-	ui.Image.Image = canvas.NewImageFromImage(activePlaylist.Cover.GetImage()).Image
-	ui.Image.Refresh()
+	if activePlaylist.Cover == "" {
+		ui.Image.Hide()
+	} else {
+		ui.Image.Image = canvas.NewImageFromImage(activePlaylist.Cover.GetImage()).Image
+		ui.Image.Refresh()
+		ui.Image.Show()
+	}
 
 	ui.ReadOnly.SetChecked(activePlaylist.CustomData.ReadOnly)
 	ui.AllowDuplicates.SetChecked(activePlaylist.CustomData.AllowDuplicates)

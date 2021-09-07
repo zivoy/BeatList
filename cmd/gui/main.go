@@ -15,6 +15,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -505,6 +506,7 @@ func main() {
 			fyne.NewMenuItem("Report Bug", func() {
 				bugURL, _ := url.Parse("https://github.com/zivoy/BeatList/issues/new")
 				reader, err := storage.Reader(logFile)
+				bugInfo := fmt.Sprintf("\n\n\n### Enviorment\n**BeatList version:** %s\n**OS:** %s", VERSION, runtime.GOOS)
 				if err != nil {
 					log.Println(err)
 				} else {
@@ -513,13 +515,15 @@ func main() {
 						log.Println(err)
 					} else {
 						if len(logs) != 0 {
-							q := bugURL.Query()
-							q.Set("body", fmt.Sprintf("\n\n### Logs:\n```\n%s\n```", logs))
-							bugURL.RawQuery = q.Encode()
+							bugInfo = fmt.Sprintf("%s\n### Logs:\n```\n%s\n```", bugInfo, strings.Trim(string(logs), "\n "))
 						}
 					}
 					_ = reader.Close()
 				}
+
+				q := bugURL.Query()
+				q.Set("body", bugInfo)
+				bugURL.RawQuery = q.Encode()
 
 				err = a.OpenURL(bugURL)
 				if err != nil {

@@ -76,6 +76,7 @@ type UI struct {
 	SongDiffs, SongDiffChecks                       *fyne.Container
 	SongDiffDropDown                                *widget.Select
 	Songs                                           *widget.List
+	LoadingBar                                      *widget.ProgressBar
 }
 
 var ui UI
@@ -119,6 +120,9 @@ func main() {
 	lastOpened, _ = storage.ParseURI(a.Preferences().StringWithFallback("lastOpened", defaultLoc.String()))
 
 	ui = UI{}
+	ui.LoadingBar = widget.NewProgressBar()
+	ui.LoadingBar.Hide()
+
 	ui.Author = widget.NewEntry()
 	ui.Author.OnChanged = func(s string) {
 		activePlaylist.Author = s
@@ -458,7 +462,7 @@ func main() {
 		saveMenu()
 	})
 
-	window.SetContent(form)
+	window.SetContent(container.NewBorder(nil, ui.LoadingBar, nil, nil, form))
 
 	res, err := latest.Check(githubTag, VERSION)
 	if err == nil && res.Outdated {
@@ -726,7 +730,6 @@ func AddVersionChars(mapData []beatsaver.MapVersion) SongDiffs {
 	return SongDiffs{chars: availableChars, diffs: diffs}
 }
 
-// todo add progress bar to caching
 func updateSongInfo(s *playlist.Song) {
 	songInf, _ := storage.Child(CacheDir, s.Hash)
 	var mapInfo beatsaver.Map
@@ -787,13 +790,18 @@ func updateSongInfo(s *playlist.Song) {
 			}
 		}
 	} else {
-		log.Println(err)
+		log.Println(s.Hash, err)
 	}
 }
 
-// todo group requests
+// todo group requests and lock to allow only one at a time
 func loadAll(songs []*playlist.Song) {
-	for _, s := range songs {
+	ui.LoadingBar.Show()
+	ui.LoadingBar.Min = 0
+	ui.LoadingBar.Max = float64(len(songs)) - 1
+	for i, s := range songs {
+		ui.LoadingBar.SetValue(float64(i))
 		updateSongInfo(s)
 	}
+	ui.LoadingBar.Hide()
 }

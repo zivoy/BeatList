@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"io"
+	"io/ioutil"
 	"log"
 	"math"
 	"net/url"
@@ -27,7 +28,9 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"github.com/tcnksm/go-latest"
 
-	"github.com/zivoy/BeatList/internal/beatsaver"
+	//"github.com/zivoy/BeatList/internal/beatsaver"
+	"BeatList/internal/beatsaver"
+
 	"github.com/zivoy/BeatList/pkg/playlist"
 )
 
@@ -173,7 +176,7 @@ func main() {
 	songInfo := widget.NewForm(
 		widget.NewFormItem("Map name", ui.SongName),
 		widget.NewFormItem("Mapper", ui.SongMapper),
-		widget.NewFormItem("Highlighted Diffs", ui.SongDiffs), //todo check things with char dropdown
+		widget.NewFormItem("Highlighted Diffs", ui.SongDiffs),
 		widget.NewFormItem("Beatsaver ID", ui.SongId),
 	)
 	var selected widget.ListItemID
@@ -220,7 +223,7 @@ func main() {
 				for i, o := range ui.SongDiffChecks.Objects {
 					object := o.(*widget.Check)
 					if diffs[i] {
-						object.Show() //todo diff names
+						object.Show() //todo custom diff names
 						object.Checked = false
 					} else {
 						object.Hide()
@@ -262,7 +265,7 @@ func main() {
 		ui.SongId.SetText(song.BeatSaverKey)
 		err = ui.SongId.SetURLFromString(fmt.Sprintf("https://beatsaver.com/maps/%s", song.BeatSaverKey))
 		if err != nil {
-			fmt.Println(err) //todo
+			log.Println(err)
 		}
 		diffs := make([]string, len(song.Difficulties))
 		for i, s := range song.Difficulties {
@@ -374,7 +377,7 @@ func main() {
 
 					cover, err := playlist.ReaderToCover(closer)
 					if err != nil {
-						return //todo
+						log.Println(err)
 					}
 					cover.Rescale(imageSize)
 
@@ -416,6 +419,30 @@ func main() {
 					updateDialog(res.Current)
 				} else {
 					dialog.ShowInformation("Up to date", "You are on the latest version", window)
+				}
+			}),
+			fyne.NewMenuItem("Report Bug", func() {
+				bugURL, _ := url.Parse("https://github.com/zivoy/BeatList/issues/new")
+				reader, err := storage.Reader(logFile)
+				if err != nil {
+					log.Println(err)
+				} else {
+					logs, err := ioutil.ReadAll(reader)
+					if err != nil {
+						log.Println(err)
+					} else {
+						if len(logs) != 0 {
+							q := bugURL.Query()
+							q.Set("body", fmt.Sprintf("\n\n### Logs:\n```\n%s\n```", logs))
+							bugURL.RawQuery = q.Encode()
+						}
+					}
+					_ = reader.Close()
+				}
+
+				err = a.OpenURL(bugURL)
+				if err != nil {
+					log.Println(err)
 				}
 			}),
 			fyne.NewMenuItem("About", func() {

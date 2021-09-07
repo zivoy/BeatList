@@ -107,17 +107,17 @@ func (c Cover) String() string {
 // GetImage returns an image.Image object
 func (c Cover) GetImage() image.Image {
 	if c == "" {
-		return image.Rect(0, 0, 0, 0) //todo default image
+		return DefaultImage()
 	}
 	str := strings.SplitN(c.GetBase64Image(), ",", 2)
 	decoded, err := base64.StdEncoding.DecodeString(str[1])
 	if err != nil {
-		return image.Rect(0, 0, 0, 0)
+		return DefaultImage()
 	}
 
 	img, _, err := image.Decode(bytes.NewReader(decoded))
 	if err != nil {
-		return image.Rect(0, 0, 0, 0)
+		return DefaultImage()
 	}
 	return img
 }
@@ -171,4 +171,9 @@ func (c *Cover) Rescale(size uint) {
 	if err == nil {
 		*c = s
 	}
+}
+
+// DefaultImage returns a default image
+func DefaultImage() image.Image {
+	return image.Rect(0, 0, 1, 1) //todo
 }

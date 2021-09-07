@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"image"
 	"io"
 	"io/ioutil"
 	"log"
@@ -35,7 +34,7 @@ import (
 )
 
 const VERSION = "0.0.1"
-const imageSize = 256 // 256 by 256 pixels
+const imageSize = 512 // 512 by 512 pixels
 var BeatSaverRe = regexp.MustCompile(`(?i)(?:(?:beatsaver\.com/maps/)|(?:!bsr ))?([[0-9A-F]+).*`)
 var playlistFilter = storage.NewExtensionFileFilter([]string{".json", ".bplist"})
 
@@ -47,8 +46,11 @@ var defaultLoc fyne.URI
 var CacheDir fyne.URI
 
 type SongDiffs struct {
-	chars []string
-	diffs map[string][5]bool
+	chars      []string
+	diffs      map[string][5]bool
+	SubName    string
+	SongAuthor string
+	Cover      playlist.Cover
 }
 
 var songDiffs = sync.Map{} //map[string]SongDiffs{}
@@ -140,16 +142,42 @@ func main() {
 		changes(true)
 	}
 	ui.Description.SetPlaceHolder("(Optional)")
-	ui.Image = canvas.NewImageFromImage(image.Rect(0, 0, 0, 0))
+	ui.Image = canvas.NewImageFromImage(playlist.DefaultImage())
 	ui.Image.SetMinSize(fyne.NewSize(128, 128))
 
+	imgMinSize := fyne.NewSize(64, 64)
 	ui.Songs = widget.NewList(func() int {
 		return len(activePlaylist.Songs)
 	}, func() fyne.CanvasObject {
-		return widget.NewLabel("")
+		title := widget.NewLabel("Song Name")
+		title.TextStyle.Bold = true
+		title.Wrapping = fyne.TextWrapBreak
+		authors := widget.NewLabel("Song Author [mapper]")
+		image := canvas.NewImageFromImage(playlist.DefaultImage())
+		image.SetMinSize(imgMinSize)
+		return container.NewBorder(nil, nil, container.NewCenter(image), nil, container.NewVBox(title, authors))
 	}, func(id widget.ListItemID, object fyne.CanvasObject) {
 		song := activePlaylist.Songs[id]
-		object.(*widget.Label).SetText(fmt.Sprintf("%s [%s]", song.SongName, song.LevelAuthorName)) //todo make this look like the list in game (in terms of formatting)
+		borderContainer := object.(*fyne.Container)
+		image := borderContainer.Objects[1].(*fyne.Container).Objects[0].(*canvas.Image) // todo change this to a canvas rather then this
+		vBox := borderContainer.Objects[0].(*fyne.Container)
+		title := vBox.Objects[0].(*widget.Label)
+		authors := vBox.Objects[1].(*widget.Label)
+
+		title.SetText(song.SongName)
+		if d, ok := songDiffs.Load(strings.ToLower(song.Hash)); ok {
+			//image.Show()
+			image.Hide()
+			details := d.(SongDiffs)
+			//if details.SubName != "" {
+			//	title.SetText(fmt.Sprintf("%s\n%s", song.SongName, details.SubName))
+			//}
+			authors.SetText(fmt.Sprintf("%s [%s]", details.SongAuthor, song.LevelAuthorName))
+			//image.Image = canvas.NewImageFromImage(details.Cover.GetImage()).Image
+		} else {
+			authors.SetText(song.LevelAuthorName)
+			image.Hide()
+		}
 	})
 
 	ui.SongName = widget.NewLabel("")
@@ -224,7 +252,7 @@ func main() {
 					object := o.(*widget.Check)
 					if diffs[i] {
 						object.Show() //todo custom diff names
-						object.Checked = false
+						object.SetChecked(false)
 					} else {
 						object.Hide()
 						continue
@@ -233,7 +261,7 @@ func main() {
 					selectedDiff := Diffs[i]
 					for _, d := range selectedSong.Difficulties {
 						if strings.EqualFold(d.Characteristic, s) && strings.EqualFold(selectedDiff, d.Name) {
-							object.Checked = true
+							object.SetChecked(true)
 							break
 						}
 					}
@@ -253,7 +281,6 @@ func main() {
 							}
 						}
 					}
-					object.Refresh()
 				}
 			}
 			ui.SongDiffDropDown.Refresh()
@@ -308,7 +335,11 @@ func main() {
 							SongName:        m.Metadata.SongName,
 							LevelAuthorName: m.Metadata.LevelAuthorName,
 						})
-						songDiffs.Store(version.Hash, AddVersionChars(version.Diffs))
+						meta := AddVersionChars(version.Diffs)
+						meta.SongAuthor = m.Metadata.SongAuthorName
+						meta.SubName = m.Metadata.SongSubName
+						//meta.Cover = getImage(version.CoverURL) todo
+						songDiffs.Store(version.Hash, meta)
 						changes(true)
 						ui.Songs.Refresh()
 					}
@@ -344,7 +375,7 @@ func main() {
 			container.NewBorder(nil, songListBar, nil, nil, ui.Songs), songInfo))
 	} else {
 		Split := container.NewHSplit(ui.Songs, container.NewHScroll(songInfo))
-		Split.Offset = .4
+		Split.Offset = .45
 		songContainer = container.NewBorder(nil, songListBar, nil, nil, Split)
 	}
 
@@ -396,7 +427,12 @@ func main() {
 					if closer == nil {
 						return
 					}
-					defer closer.Close()
+					defer func(closer fyne.URIReadCloser) {
+						err := closer.Close()
+						if err != nil {
+							log.Println(err)
+						}
+					}(closer)
 
 					cover, err := playlist.ReaderToCover(closer)
 					if err != nil {
@@ -602,7 +638,12 @@ func saveMenu() {
 		if closer == nil {
 			return
 		}
-		defer closer.Close()
+		defer func(closer fyne.URIWriteCloser) {
+			err := closer.Close()
+			if err != nil {
+				log.Println(err)
+			}
+		}(closer)
 
 		err = activePlaylist.SavePretty(closer)
 		if err != nil {
@@ -626,7 +667,12 @@ func openMenu() {
 			if closer == nil {
 				return
 			}
-			defer closer.Close()
+			defer func(closer fyne.URIReadCloser) {
+				err := closer.Close()
+				if err != nil {
+					log.Println(err)
+				}
+			}(closer)
 
 			p, err := playlist.Load(closer)
 			if err != nil {
@@ -646,6 +692,11 @@ func openMenu() {
 			changes(false)
 		}, window)
 		//d.SetFileName(lastOpened.Name())
+		//uri, _ := storage.ListerForURI(lastOpened)
+		//if err != nil {
+		//	return
+		//}
+		//d.SetLocation()
 		d.SetFilter(playlistFilter)
 		d.Show()
 	}, window)
@@ -680,10 +731,8 @@ func (u UI) refresh() {
 	ui.Image.Image = canvas.NewImageFromImage(activePlaylist.Cover.GetImage()).Image
 	ui.Image.Refresh()
 
-	ui.ReadOnly.Checked = activePlaylist.CustomData.ReadOnly
-	ui.ReadOnly.Refresh()
-	ui.AllowDuplicates.Checked = activePlaylist.CustomData.AllowDuplicates
-	ui.AllowDuplicates.Refresh()
+	ui.ReadOnly.SetChecked(activePlaylist.CustomData.ReadOnly)
+	ui.AllowDuplicates.SetChecked(activePlaylist.CustomData.AllowDuplicates)
 	ui.SyncURL.SetText(activePlaylist.CustomData.SyncURL)
 	ui.ArchiveURL.SetText(activePlaylist.CustomData.ArchiveURL)
 
@@ -793,7 +842,11 @@ func updateSongInfo(s *playlist.Song) {
 
 		for _, i := range mapInfo.Versions {
 			if strings.EqualFold(i.Hash, s.Hash) {
-				songDiffs.Store(s.Hash, AddVersionChars(i.Diffs))
+				meta := AddVersionChars(i.Diffs)
+				meta.SongAuthor = mapInfo.Metadata.SongAuthorName
+				meta.SubName = mapInfo.Metadata.SongSubName
+				//meta.Cover = getImage(i.CoverURL)
+				songDiffs.Store(i.Hash, meta)
 				break
 			}
 		}

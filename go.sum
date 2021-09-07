@@ -54,10 +54,6 @@ github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5
 github.com/tcnksm/go-latest v0.0.0-20170313132115-e3007ae9052e h1:IWllFTiDjjLIf2oeKxpIUmtiDV5sn71VgeQgg6vcE7k=
 github.com/tcnksm/go-latest v0.0.0-20170313132115-e3007ae9052e/go.mod h1:d7u6HkTYKSv5m6MCKkOQlHwaShTMl3HjqSGW3XtVhXM=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
-github.com/zivoy/BeatList v0.0.0 h1:ygGRfKTLQmGxNsSIxIx22/Nfsg7dUk3BoSWwGclvMcQ=
-github.com/zivoy/BeatList v0.0.0/go.mod h1:aC0JI60lsouUoKDoA/euP/rK2V3qpyMSvIG81Je2Sjs=
-github.com/zivoy/BeatList v0.0.1-0.20210906181251-b38388e12610 h1:j5CguWYCTHkOxRgjuU6egRfV4JQLPZfK2lhc/55yTac=
-github.com/zivoy/BeatList v0.0.1-0.20210906181251-b38388e12610/go.mod h1:aC0JI60lsouUoKDoA/euP/rK2V3qpyMSvIG81Je2Sjs=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550/go.mod h1:yigFU9vqHzYiE8UmvKecakEJjdnWj3jj499lnFckfCI=
 golang.org/x/image v0.0.0-20190802002840-cff245a6509b/go.mod h1:FeLwcggjj3mMvU+oOTbSwawSJRM1uh48EjtB4UJZlP0=

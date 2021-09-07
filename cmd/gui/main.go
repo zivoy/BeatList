@@ -294,8 +294,15 @@ func main() {
 							dialog.ShowInformation("Error", fmt.Sprintf("Failed to use \"%s\" as a id", id.Text), window)
 							return
 						}
-						version := m.Versions[0]                                            // not sure about this
-						activePlaylist.Songs = append(activePlaylist.Songs, &playlist.Song{ //todo check if already in if disable doups
+						version := m.Versions[0] // not sure about this
+						if !activePlaylist.CustomData.AllowDuplicates {
+							for _, s := range activePlaylist.Songs {
+								if s.Hash == version.Hash {
+									return
+								}
+							}
+						}
+						activePlaylist.Songs = append(activePlaylist.Songs, &playlist.Song{
 							Hash:            version.Hash,
 							BeatSaverKey:    m.Id,
 							SongName:        m.Metadata.SongName,
@@ -347,6 +354,22 @@ func main() {
 	})
 	ui.AllowDuplicates = widget.NewCheck("", func(b bool) {
 		activePlaylist.CustomData.AllowDuplicates = b
+		if !b {
+			items := map[string]bool{}
+			for _, s := range activePlaylist.Songs {
+				items[s.Hash] = true
+			}
+			songs := make([]*playlist.Song, len(items))
+			i := 0
+			for _, s := range activePlaylist.Songs {
+				if items[s.Hash] {
+					songs[i] = s
+					i++
+					items[s.Hash] = false
+				}
+			}
+			activePlaylist.Songs = songs
+		}
 		changes(true)
 	})
 	ui.SyncURL = widget.NewEntry()

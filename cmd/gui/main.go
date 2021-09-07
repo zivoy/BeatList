@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"image/color"
 	"io"
 	"io/ioutil"
 	"log"
@@ -146,38 +147,23 @@ func main() {
 	ui.Image.Hide()
 	ui.Image.SetMinSize(fyne.NewSize(128, 128))
 
-	imgMinSize := fyne.NewSize(64, 64)
 	ui.Songs = widget.NewList(func() int {
 		return len(activePlaylist.Songs)
 	}, func() fyne.CanvasObject {
-		title := widget.NewLabel("Song Name")
-		title.TextStyle.Bold = true
-		title.Wrapping = fyne.TextWrapBreak
-		authors := widget.NewLabel("Song Author [mapper]")
-		image := canvas.NewImageFromImage(playlist.DefaultImage())
-		image.SetMinSize(imgMinSize)
-		return container.NewBorder(nil, nil, container.NewCenter(image), nil, container.NewVBox(title, authors))
+		return NewSongItem("Song Name", "Sub name", "Song Author", "Mapper")
 	}, func(id widget.ListItemID, object fyne.CanvasObject) {
 		song := activePlaylist.Songs[id]
-		borderContainer := object.(*fyne.Container)
-		image := borderContainer.Objects[1].(*fyne.Container).Objects[0].(*canvas.Image) // todo change this to a canvas rather then this
-		vBox := borderContainer.Objects[0].(*fyne.Container)
-		title := vBox.Objects[0].(*widget.Label)
-		authors := vBox.Objects[1].(*widget.Label)
+		cont := object.(*fyne.Container)
 
-		title.SetText(song.SongName)
+		var title, subtitle, author, mapper string
+		title = song.SongName
+		mapper = song.LevelAuthorName
 		if details, ok := songDiffs.Load(song.Hash); ok {
-			//image.Show()
-			image.Hide()
-			//if details.SubName != "" {
-			//	title.SetText(fmt.Sprintf("%s\n%s", song.SongName, details.SubName))
-			//}
-			authors.SetText(fmt.Sprintf("%s [%s]", details.SongAuthor, song.LevelAuthorName))
-			//image.Image = canvas.NewImageFromImage(details.Cover.GetImage()).Image
-		} else {
-			authors.SetText(song.LevelAuthorName)
-			image.Hide()
+			subtitle = details.SubName
+			author = details.SongAuthor
 		}
+		cont.Objects = NewSongItem(title, subtitle, author, mapper).Objects
+		cont.Refresh()
 	})
 
 	ui.SongName = widget.NewLabel("")
@@ -911,4 +897,125 @@ func (rm *SongDiffMap) Store(key string, value SongDiffs) {
 	rm.Lock()
 	rm.internal[strings.ToLower(key)] = value
 	rm.Unlock()
+}
+
+func NewSongItem(SongName, SongSubName, Author, Mapper string) *fyne.Container {
+	l := container.NewWithoutLayout()
+	var width1, width2, height float32
+
+	text := canvas.NewText(SongName, color.White)
+	text.TextStyle.Bold = true
+	l.Add(text)
+	titleSize := text.MinSize()
+	width1 += titleSize.Width
+	height += titleSize.Height
+
+	text = canvas.NewText(" "+SongSubName, color.White)
+	text.Move(fyne.NewPos(titleSize.Width, 0))
+	l.Add(text)
+	width1 += text.MinSize().Width
+
+	if Author != "" && Author != Mapper {
+		text = canvas.NewText(Author+" [", color.Gray{Y: 0xb3})
+		text.Move(fyne.NewPos(0, titleSize.Height))
+		l.Add(text)
+		musicianSize := text.MinSize()
+		width2 += musicianSize.Width
+		height += musicianSize.Height
+
+		text = canvas.NewText(Mapper, color.RGBA{R: 0xa7, G: 0xd9, B: 0x34, A: 0xff})
+		text.Move(fyne.NewPos(musicianSize.Width, titleSize.Height))
+		l.Add(text)
+		mapperSize := text.MinSize()
+		width2 += mapperSize.Width
+
+		text = canvas.NewText("]", color.Gray{Y: 0xb3})
+		text.Move(fyne.NewPos(musicianSize.Width+mapperSize.Width, titleSize.Height))
+		l.Add(text)
+		width2 += text.MinSize().Width
+	} else {
+		text = canvas.NewText(Mapper, color.RGBA{R: 0xa7, G: 0xd9, B: 0x34, A: 0xff})
+		text.Move(fyne.NewPos(0, titleSize.Height))
+		l.Add(text)
+		mapperSize := text.MinSize()
+		width2 += mapperSize.Width
+		height += mapperSize.Height
+	}
+
+	image := canvas.NewRectangle(color.White) //todo
+	image.SetMinSize(fyne.NewSize(64, 64))
+
+	return container.NewHBox(image,
+		NewCenter(container.NewPadded(NewMinSize(l, float32(math.Max(float64(width1), float64(width2))), height)), posCenter, posLeading))
+
+}
+
+type MinSize struct {
+	w, h float32
+}
+
+func (m MinSize) MinSize(objects []fyne.CanvasObject) fyne.Size {
+	w, h := m.w, m.h
+	o1 := objects[0]
+	if w == 0 {
+		w = o1.MinSize().Width
+	}
+	if h == 0 {
+		h = o1.MinSize().Height
+	}
+	return fyne.NewSize(w, h)
+}
+
+func (m MinSize) Layout(objects []fyne.CanvasObject, containerSize fyne.Size) {
+	o1 := objects[0]
+	o1.Resize(containerSize)
+}
+
+func NewMinSize(obj fyne.CanvasObject, width, height float32) *fyne.Container {
+	return container.New(&MinSize{w: width, h: height}, obj)
+}
+
+const (
+	posLeading = iota
+	posCenter
+	posTrailing
+)
+
+type Center struct {
+	VCenter, HCenter int
+}
+
+func (c Center) MinSize(objects []fyne.CanvasObject) fyne.Size {
+	return objects[0].MinSize()
+}
+
+func (c Center) Layout(objects []fyne.CanvasObject, containerSize fyne.Size) {
+	s := c.MinSize(objects)
+	var xPos, yPos float32
+	switch c.HCenter {
+	case posLeading:
+		xPos = 0
+	case posCenter:
+		xPos = containerSize.Width/2 - s.Width/2
+	case posTrailing:
+		xPos = containerSize.Width - s.Width
+	}
+
+	switch c.VCenter {
+	case posLeading:
+		yPos = 0
+	case posCenter:
+		yPos = containerSize.Height/2 - s.Height/2
+	case posTrailing:
+		yPos = containerSize.Height - s.Height
+	}
+
+	pos := fyne.NewPos(xPos, yPos)
+	o1 := objects[0]
+	o1.Resize(s)
+	o1.Move(pos)
+}
+
+func NewCenter(obj fyne.CanvasObject, vPos, hPos int) *fyne.Container {
+	return container.New(&Center{vPos, hPos}, obj)
 }

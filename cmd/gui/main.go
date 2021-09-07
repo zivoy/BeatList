@@ -39,7 +39,7 @@ import (
 	"github.com/zivoy/BeatList/pkg/playlist"
 )
 
-const VERSION = "0.1.0"
+const VERSION = "0.1.1"
 const imageSize = 512 // 512 by 512 pixels
 var BeatSaverRe = regexp.MustCompile(`(?i)(?:beatsaver\.com/maps/|!bsr )?([[0-9A-F]+).*`)
 var playlistFilter = storage.NewExtensionFileFilter([]string{".json", ".bplist"})
@@ -500,7 +500,8 @@ func main() {
 				if res.Outdated {
 					updateDialog(res.Current)
 				} else {
-					dialog.ShowInformation("Up to date", "You are on the latest version", window)
+					dialog.ShowInformation("Up to date",
+						fmt.Sprintf("You are on the latest version (v%s)", VERSION), window)
 				}
 			}),
 			fyne.NewMenuItem("Report Bug", func() {
@@ -533,7 +534,7 @@ func main() {
 			fyne.NewMenuItem("About", func() {
 				aboutW := a.NewWindow("About")
 				cont := container.NewVBox()
-				l := widget.NewLabel("BeatList a BeatSaber playlist creator")
+				l := widget.NewLabel("BeatList a BeatSaber playlist creator\nVersion: v" + VERSION)
 				l.Alignment = fyne.TextAlignCenter
 				l.Wrapping = fyne.TextWrapWord
 				cont.Add(l)

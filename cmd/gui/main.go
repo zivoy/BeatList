@@ -156,6 +156,11 @@ func main() {
 	ui.Image.Hide()
 	ui.Image.SetMinSize(fyne.NewSize(128, 128))
 
+	songs := map[string]struct {
+		hash string
+		song *fyne.Container
+	}{}
+
 	ui.Songs = widget.NewList(func() int {
 		return len(activePlaylist.Songs)
 	}, func() fyne.CanvasObject {
@@ -172,7 +177,27 @@ func main() {
 			author = details.SongAuthor
 			cover = details.Cover
 		}
-		cont.Objects = NewSongItem(title, subtitle, author, mapper, cover).Objects
+
+		var Element *fyne.Container
+		var newEl bool
+		hashEl := hash(title + subtitle + author + mapper + cover)
+		if songD, ok := songs[song.Hash]; ok {
+			if songD.hash == hashEl {
+				Element = songD.song
+			} else {
+				newEl = true
+			}
+		} else {
+			newEl = true
+		}
+		if newEl {
+			Element = NewSongItem(title, subtitle, author, mapper, cover)
+			songs[song.Hash] = struct {
+				hash string
+				song *fyne.Container
+			}{hash: hashEl, song: Element}
+		}
+		cont.Objects = Element.Objects
 		cont.Refresh()
 	})
 
@@ -227,7 +252,7 @@ func main() {
 
 		// update info
 		updateSongInfo(song)
-		//ui.Songs.Refresh()
+		ui.Songs.Refresh()
 
 		if details, ok := songDiffs.Load(song.Hash); ok {
 			ui.SongDiffChecks.Show()
@@ -1045,25 +1070,20 @@ func NewCenter(obj fyne.CanvasObject, vPos, hPos int) *fyne.Container {
 	return container.New(&Center{vPos, hPos}, obj)
 }
 
-var covers = sync.Map{}
+func hash(s string) string {
+	sum := md5.Sum([]byte(s))
+	return hex.EncodeToString(sum[:])
+}
 
 func GetImage(url string, img *canvas.Image) {
 	if url == "" {
 		return
 	}
-	sum := md5.Sum([]byte(url))
-	id := "img-" + hex.EncodeToString(sum[:])
 
-	// local cache
-	if c, ok := covers.Load(id); ok {
-		img.Image = c.(playlist.Cover).GetImage()
-		img.Refresh()
-		return
-	}
+	id := "img-" + hash(url)
 
 	go func() {
 		var cover playlist.Cover
-
 		songImg, _ := storage.Child(CacheDir, id)
 		if e, err := storage.Exists(songImg); e && err == nil {
 			r, err := storage.Reader(songImg)
@@ -1101,7 +1121,6 @@ func GetImage(url string, img *canvas.Image) {
 			}
 		}
 
-		covers.Store(id, cover)
 		img.Image = cover.GetImage()
 		img.Refresh()
 	}()

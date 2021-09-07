@@ -1,12 +1,15 @@
 package main
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"image/color"
 	"io"
 	"io/ioutil"
 	"log"
 	"math"
+	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -15,6 +18,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"fyne.io/fyne/v2/driver/desktop"
 
@@ -45,13 +49,15 @@ var lastOpened fyne.URI
 var window fyne.Window
 var defaultLoc fyne.URI
 var CacheDir fyne.URI
+var imageDownloader *sync.Cond
+var requestLimiterTimer <-chan time.Time
 
 type SongDiffs struct {
 	chars      []string
 	diffs      map[string][5]bool
 	SubName    string
 	SongAuthor string
-	Cover      playlist.Cover
+	Cover      string //url
 }
 
 var songDiffs = NewSongDiffMap()
@@ -106,6 +112,9 @@ func main() {
 	multi := io.MultiWriter(f, os.Stdout)
 	log.SetOutput(multi)
 
+	imageDownloader = sync.NewCond(&sync.RWMutex{})
+	requestLimiterTimer = time.Tick(100 * time.Millisecond)
+
 	CacheDir = storage.NewFileURI(filepath.Join(os.TempDir(), "BeatList"))
 	err = os.MkdirAll(CacheDir.Path(), os.ModePerm)
 	if err != nil {
@@ -150,19 +159,20 @@ func main() {
 	ui.Songs = widget.NewList(func() int {
 		return len(activePlaylist.Songs)
 	}, func() fyne.CanvasObject {
-		return NewSongItem("Song Name", "Sub name", "Song Author", "Mapper")
+		return NewSongItem("Song Name", "Sub name", "Song Author", "Mapper", "")
 	}, func(id widget.ListItemID, object fyne.CanvasObject) {
 		song := activePlaylist.Songs[id]
 		cont := object.(*fyne.Container)
 
-		var title, subtitle, author, mapper string
+		var title, subtitle, author, mapper, cover string
 		title = song.SongName
 		mapper = song.LevelAuthorName
 		if details, ok := songDiffs.Load(song.Hash); ok {
 			subtitle = details.SubName
 			author = details.SongAuthor
+			cover = details.Cover
 		}
-		cont.Objects = NewSongItem(title, subtitle, author, mapper).Objects
+		cont.Objects = NewSongItem(title, subtitle, author, mapper, cover).Objects
 		cont.Refresh()
 	})
 
@@ -323,7 +333,7 @@ func main() {
 						meta := AddVersionChars(version.Diffs)
 						meta.SongAuthor = m.Metadata.SongAuthorName
 						meta.SubName = m.Metadata.SongSubName
-						//meta.Cover = getImage(version.CoverURL) todo
+						meta.Cover = version.CoverURL
 						songDiffs.Store(version.Hash, meta)
 						changes(true)
 						ui.Songs.Refresh()
@@ -407,6 +417,7 @@ func main() {
 				d := dialog.NewFileOpen(func(closer fyne.URIReadCloser, err error) {
 					if err != nil {
 						dialog.ShowError(err, window)
+						log.Println(err)
 						return
 					}
 					if closer == nil {
@@ -619,6 +630,7 @@ func saveMenu() {
 	d := dialog.NewFileSave(func(closer fyne.URIWriteCloser, err error) {
 		if err != nil {
 			dialog.ShowError(err, window)
+			log.Println(err)
 			return
 		}
 		if closer == nil {
@@ -634,6 +646,7 @@ func saveMenu() {
 		err = activePlaylist.SavePretty(closer)
 		if err != nil {
 			dialog.ShowError(err, window)
+			log.Println(err)
 			return
 		}
 		changes(false)
@@ -648,6 +661,7 @@ func openMenu() {
 		d := dialog.NewFileOpen(func(closer fyne.URIReadCloser, err error) {
 			if err != nil {
 				dialog.ShowError(err, window)
+				log.Println(err)
 				return
 			}
 			if closer == nil {
@@ -663,6 +677,7 @@ func openMenu() {
 			p, err := playlist.Load(closer)
 			if err != nil {
 				dialog.ShowError(err, window)
+				log.Println(err)
 				return
 			}
 
@@ -705,6 +720,7 @@ func updateDialog(latest string) {
 			err := fyne.CurrentApp().OpenURL(updateUrl)
 			if err != nil {
 				dialog.ShowError(err, window)
+				log.Println(err)
 			}
 		}
 	}, window)
@@ -846,7 +862,7 @@ func updateSongInfo(s *playlist.Song) {
 					meta := AddVersionChars(i.Diffs)
 					meta.SongAuthor = mapInfo.Metadata.SongAuthorName
 					meta.SubName = mapInfo.Metadata.SongSubName
-					//meta.Cover = getImage(i.CoverURL)
+					meta.Cover = i.CoverURL
 					songDiffs.Store(i.Hash, meta)
 					break
 				}
@@ -899,7 +915,9 @@ func (rm *SongDiffMap) Store(key string, value SongDiffs) {
 	rm.Unlock()
 }
 
-func NewSongItem(SongName, SongSubName, Author, Mapper string) *fyne.Container {
+var images = map[string]*canvas.Image{}
+
+func NewSongItem(SongName, SongSubName, Author, Mapper, cover string) *fyne.Container {
 	l := container.NewWithoutLayout()
 	var width1, width2, height float32
 
@@ -942,10 +960,17 @@ func NewSongItem(SongName, SongSubName, Author, Mapper string) *fyne.Container {
 		height += mapperSize.Height
 	}
 
-	image := canvas.NewRectangle(color.White) //todo
-	image.SetMinSize(fyne.NewSize(64, 64))
+	var img *canvas.Image
+	if im, ok := images[cover]; ok { // dont make another image cover
+		img = im
+	} else {
+		img = canvas.NewImageFromImage(playlist.DefaultImage())
+		GetImage(cover, img)
+		img.SetMinSize(fyne.NewSize(64, 64))
+		images[cover] = img
+	}
 
-	return container.NewHBox(image,
+	return container.NewHBox(img,
 		NewCenter(container.NewPadded(NewMinSize(l, fyne.Max(width1, width2), height)), posCenter, posLeading))
 
 }
@@ -1018,4 +1043,106 @@ func (c Center) Layout(objects []fyne.CanvasObject, containerSize fyne.Size) {
 
 func NewCenter(obj fyne.CanvasObject, vPos, hPos int) *fyne.Container {
 	return container.New(&Center{vPos, hPos}, obj)
+}
+
+var covers = sync.Map{}
+
+func GetImage(url string, img *canvas.Image) {
+	if url == "" {
+		return
+	}
+	sum := md5.Sum([]byte(url))
+	id := "img-" + hex.EncodeToString(sum[:])
+
+	// local cache
+	if c, ok := covers.Load(id); ok {
+		img.Image = c.(playlist.Cover).GetImage()
+		img.Refresh()
+		return
+	}
+
+	go func() {
+		var cover playlist.Cover
+
+		songImg, _ := storage.Child(CacheDir, id)
+		if e, err := storage.Exists(songImg); e && err == nil {
+			r, err := storage.Reader(songImg)
+			if err != nil {
+				log.Println(err)
+			} else {
+				c, err := ioutil.ReadAll(r)
+				if err != nil {
+					log.Println(err)
+				}
+				cover = playlist.Cover(c)
+
+				_ = r.Close()
+			}
+		} else {
+			// get new
+			cover = fetchCover(url, func() bool {
+				return !img.Visible()
+			})
+			if cover != "" {
+				//resize to save space
+				cover.Rescale(64)
+
+				w, err := storage.Writer(songImg)
+				if err != nil {
+					log.Println(err)
+				} else {
+					_, err := w.Write([]byte(cover.GetBase64Image()))
+					if err != nil {
+						log.Println(err)
+					}
+
+					_ = w.Close()
+				}
+			}
+		}
+
+		covers.Store(id, cover)
+		img.Image = cover.GetImage()
+		img.Refresh()
+	}()
+}
+
+var waiting bool
+
+func fetchCover(url string, stop func() bool) playlist.Cover {
+	imageDownloader.L.Lock()
+	if waiting {
+		imageDownloader.Wait()
+	}
+	if stop() {
+		return ""
+	}
+	waiting = true
+
+	defer func() {
+		waiting = false
+		imageDownloader.Signal()
+		imageDownloader.L.Unlock()
+	}()
+
+	<-requestLimiterTimer
+
+	response, err := http.Get(url)
+	if err != nil {
+		log.Println(err)
+		return ""
+	}
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(response.Body)
+
+	if response.StatusCode != 200 {
+		log.Println(url, response.StatusCode)
+		return ""
+	}
+	cover, err := playlist.ReaderToCover(response.Body)
+	if err != nil {
+		log.Println(err)
+	}
+	return cover
 }

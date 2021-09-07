@@ -35,7 +35,7 @@ import (
 
 const VERSION = "0.0.1"
 const imageSize = 512 // 512 by 512 pixels
-var BeatSaverRe = regexp.MustCompile(`(?i)(?:(?:beatsaver\.com/maps/)|(?:!bsr ))?([[0-9A-F]+).*`)
+var BeatSaverRe = regexp.MustCompile(`(?i)(?:beatsaver\.com/maps/|!bsr )?([[0-9A-F]+).*`)
 var playlistFilter = storage.NewExtensionFileFilter([]string{".json", ".bplist"})
 
 var activePlaylist playlist.Playlist
@@ -53,7 +53,7 @@ type SongDiffs struct {
 	Cover      playlist.Cover
 }
 
-var songDiffs = sync.Map{} //map[string]SongDiffs{}
+var songDiffs = NewSongDiffMap()
 var Diffs = []string{
 	playlist.DifficultyEasy,
 	playlist.DifficultyNormal,
@@ -165,10 +165,9 @@ func main() {
 		authors := vBox.Objects[1].(*widget.Label)
 
 		title.SetText(song.SongName)
-		if d, ok := songDiffs.Load(strings.ToLower(song.Hash)); ok {
+		if details, ok := songDiffs.Load(song.Hash); ok {
 			//image.Show()
 			image.Hide()
-			details := d.(SongDiffs)
 			//if details.SubName != "" {
 			//	title.SetText(fmt.Sprintf("%s\n%s", song.SongName, details.SubName))
 			//}
@@ -231,10 +230,9 @@ func main() {
 
 		// update info
 		updateSongInfo(song)
-		ui.Songs.Refresh()
+		//ui.Songs.Refresh()
 
-		if d, ok := songDiffs.Load(song.Hash); ok {
-			details := d.(SongDiffs)
+		if details, ok := songDiffs.Load(song.Hash); ok {
 			ui.SongDiffChecks.Show()
 			ui.SongDiffText.Hide()
 			ui.SongDiffDropDown.Show()
@@ -827,27 +825,33 @@ func updateSongInfo(s *playlist.Song) {
 	}
 
 	if err == nil {
+		c := false
 		if s.SongName != mapInfo.Metadata.SongName {
 			s.SongName = mapInfo.Metadata.SongName
 			changes(true)
+			c = true
 		}
 		if s.BeatSaverKey != mapInfo.Id {
 			s.BeatSaverKey = mapInfo.Id
 			changes(true)
+			c = true
 		}
 		if s.LevelAuthorName != mapInfo.Metadata.LevelAuthorName {
 			s.LevelAuthorName = mapInfo.Metadata.LevelAuthorName
 			changes(true)
+			c = true
 		}
 
-		for _, i := range mapInfo.Versions {
-			if strings.EqualFold(i.Hash, s.Hash) {
-				meta := AddVersionChars(i.Diffs)
-				meta.SongAuthor = mapInfo.Metadata.SongAuthorName
-				meta.SubName = mapInfo.Metadata.SongSubName
-				//meta.Cover = getImage(i.CoverURL)
-				songDiffs.Store(i.Hash, meta)
-				break
+		if _, ok := songDiffs.Load(s.Hash); !ok || c {
+			for _, i := range mapInfo.Versions {
+				if strings.EqualFold(i.Hash, s.Hash) {
+					meta := AddVersionChars(i.Diffs)
+					meta.SongAuthor = mapInfo.Metadata.SongAuthorName
+					meta.SubName = mapInfo.Metadata.SongSubName
+					//meta.Cover = getImage(i.CoverURL)
+					songDiffs.Store(i.Hash, meta)
+					break
+				}
 			}
 		}
 	} else {
@@ -865,4 +869,34 @@ func loadAll(songs []*playlist.Song) {
 		updateSongInfo(s)
 	}
 	ui.LoadingBar.Hide()
+}
+
+type SongDiffMap struct {
+	sync.RWMutex
+	internal map[string]SongDiffs
+}
+
+func NewSongDiffMap() *SongDiffMap {
+	return &SongDiffMap{
+		internal: make(map[string]SongDiffs),
+	}
+}
+
+func (rm *SongDiffMap) Load(key string) (value SongDiffs, ok bool) {
+	rm.RLock()
+	result, ok := rm.internal[strings.ToLower(key)]
+	rm.RUnlock()
+	return result, ok
+}
+
+func (rm *SongDiffMap) Delete(key string) {
+	rm.Lock()
+	delete(rm.internal, strings.ToLower(key))
+	rm.Unlock()
+}
+
+func (rm *SongDiffMap) Store(key string, value SongDiffs) {
+	rm.Lock()
+	rm.internal[strings.ToLower(key)] = value
+	rm.Unlock()
 }

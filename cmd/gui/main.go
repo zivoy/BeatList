@@ -293,11 +293,11 @@ func main() {
 	songListBar := widget.NewToolbar(
 		widget.NewToolbarAction(theme.ContentAddIcon(), func() {
 			id := widget.NewEntry()
-			id.SetPlaceHolder("Beatsaver id")
+			id.SetPlaceHolder("Beatsaver ID or URL")
 			beatsaverUrl, _ := url.Parse("https://beatsaver.com/")
-			dialog.ShowForm("Beatsaver url / id", "Add", "cancel", widget.NewForm(
-				widget.NewFormItem("Get link", widget.NewHyperlink("Beatsaver", beatsaverUrl)),
-				widget.NewFormItem("id", id)).Items,
+			dialog.ShowForm("Beatsaver URL / ID", "Add", "cancel", widget.NewForm(
+				widget.NewFormItem("Get link", NewMinSize(widget.NewHyperlink("Beatsaver", beatsaverUrl), 350, 0)),
+				widget.NewFormItem("ID", id)).Items,
 				func(b bool) {
 					if b && BeatSaverRe.MatchString(id.Text) {
 						subMatch := BeatSaverRe.FindStringSubmatch(id.Text)
@@ -946,7 +946,7 @@ func NewSongItem(SongName, SongSubName, Author, Mapper string) *fyne.Container {
 	image.SetMinSize(fyne.NewSize(64, 64))
 
 	return container.NewHBox(image,
-		NewCenter(container.NewPadded(NewMinSize(l, float32(math.Max(float64(width1), float64(width2))), height)), posCenter, posLeading))
+		NewCenter(container.NewPadded(NewMinSize(l, fyne.Max(width1, width2), height)), posCenter, posLeading))
 
 }
 

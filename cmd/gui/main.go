@@ -585,7 +585,10 @@ func openMenu() {
 			}
 
 			// load info on songs
-			go loadAll(p.Songs)
+			go func() {
+				loadAll(p.Songs)
+				changes(false)
+			}()
 
 			lastOpened = closer.URI()
 			activePlaylist = p

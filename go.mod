@@ -9,7 +9,7 @@ require (
 	github.com/hashicorp/go-version v1.3.0 // indirect
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/tcnksm/go-latest v0.0.0-20170313132115-e3007ae9052e
-	github.com/zivoy/BeatList v0.0.2
+	github.com/zivoy/BeatList v0.1.0
 )
 
 replace (

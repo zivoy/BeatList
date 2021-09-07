@@ -39,6 +39,7 @@ const (
 	Characteristic360Degree = "360Degree"
 	Characteristic90Degree  = "90Degree"
 	CharacteristicLawless   = "Lawless"
+	CharacteristicLightshow = "Lightshow"
 )
 
 type Song struct {

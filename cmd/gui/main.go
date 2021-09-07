@@ -760,6 +760,11 @@ func AddVersionChars(mapData []beatsaver.MapVersion) SongDiffs {
 			char = playlist.CharacteristicOneSaber
 		} else if strings.EqualFold(i.Characteristic, playlist.CharacteristicStandard) {
 			char = playlist.CharacteristicStandard
+		} else if strings.EqualFold(i.Characteristic, playlist.CharacteristicLightshow) {
+			char = playlist.CharacteristicLightshow
+		} else {
+			log.Printf("potentially unsupported characteristic \"%s\"", i.Characteristic)
+			char = i.Characteristic
 		}
 
 		for _, j := range availableChars {

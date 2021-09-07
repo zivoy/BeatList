@@ -33,7 +33,7 @@ import (
 	"github.com/zivoy/BeatList/pkg/playlist"
 )
 
-const VERSION = "0.0.1"
+const VERSION = "0.1.0"
 const imageSize = 512 // 512 by 512 pixels
 var BeatSaverRe = regexp.MustCompile(`(?i)(?:beatsaver\.com/maps/|!bsr )?([[0-9A-F]+).*`)
 var playlistFilter = storage.NewExtensionFileFilter([]string{".json", ".bplist"})

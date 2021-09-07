@@ -1,9 +1,6 @@
 package main
 
 import (
-	"BeatList/internal/beatsaver"
-	"bytes"
-	"encoding/base64"
 	"fmt"
 	"image"
 	"io"
@@ -16,6 +13,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 
 	"fyne.io/fyne/v2/driver/desktop"
 
@@ -27,12 +25,10 @@ import (
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
-	"github.com/nfnt/resize"
 	"github.com/tcnksm/go-latest"
-	"github.com/zivoy/BeatList/pkg/playlist"
 
-	"image/jpeg"
-	"image/png"
+	"github.com/zivoy/BeatList/internal/beatsaver"
+	"github.com/zivoy/BeatList/pkg/playlist"
 )
 
 const VERSION = "0.0.1"
@@ -52,7 +48,7 @@ type SongDiffs struct {
 	diffs map[string][5]bool
 }
 
-var songDiffs = map[string]SongDiffs{}
+var songDiffs = sync.Map{} //map[string]SongDiffs{}
 var Diffs = []string{
 	playlist.DifficultyEasy,
 	playlist.DifficultyNormal,
@@ -206,7 +202,8 @@ func main() {
 		updateSongInfo(song)
 		ui.Songs.Refresh()
 
-		if details, ok := songDiffs[song.Hash]; ok {
+		if d, ok := songDiffs.Load(song.Hash); ok {
+			details := d.(SongDiffs)
 			ui.SongDiffChecks.Show()
 			ui.SongDiffText.Hide()
 			ui.SongDiffDropDown.Show()
@@ -301,7 +298,7 @@ func main() {
 							SongName:        m.Metadata.SongName,
 							LevelAuthorName: m.Metadata.LevelAuthorName,
 						})
-						songDiffs[version.Hash] = AddVersionChars(version.Diffs)
+						songDiffs.Store(version.Hash, AddVersionChars(version.Diffs))
 						changes(true)
 						ui.Songs.Refresh()
 					}
@@ -375,12 +372,14 @@ func main() {
 					}
 					defer closer.Close()
 
-					img, encString, err := imageToBase64(closer)
+					cover, err := playlist.ReaderToCover(closer)
 					if err != nil {
 						return //todo
 					}
-					activePlaylist.Cover = encString
-					ui.Image.Image = canvas.NewImageFromImage(img).Image
+					cover.Rescale(imageSize)
+
+					activePlaylist.Cover = cover
+					ui.Image.Image = canvas.NewImageFromImage(cover.GetImage()).Image
 					ui.Image.Refresh()
 					changes(true)
 				}, window)
@@ -625,7 +624,7 @@ func (u UI) refresh() {
 	ui.Author.SetText(activePlaylist.Author)
 	ui.Description.SetText(activePlaylist.Description)
 	ui.Title.SetText(activePlaylist.Title)
-	ui.Image.Image = canvas.NewImageFromImage(decodeBase64(activePlaylist.Cover)).Image
+	ui.Image.Image = canvas.NewImageFromImage(activePlaylist.Cover.GetImage()).Image
 	ui.Image.Refresh()
 
 	ui.ReadOnly.Checked = activePlaylist.CustomData.ReadOnly
@@ -640,50 +639,6 @@ func (u UI) refresh() {
 	ui.SongDiffDropDown.Hide()
 	ui.Songs.Select(0)
 	ui.Songs.Unselect(0)
-}
-
-func imageToBase64(reader io.Reader) (image.Image, string, error) {
-	img, mimeType, err := image.Decode(reader)
-	if err != nil {
-		return nil, "", err
-	}
-
-	img = resize.Resize(imageSize, imageSize, img, resize.Bilinear)
-
-	var base64Encoding string
-	buf := new(bytes.Buffer)
-	switch mimeType {
-	case "image/jpeg":
-		err = jpeg.Encode(buf, img, nil)
-		base64Encoding += "data:image/jpeg;base64,"
-	case "image/png":
-		err = png.Encode(buf, img)
-		base64Encoding += "data:image/png;base64,"
-	}
-	if err != nil {
-		return img, "", err
-	}
-
-	base64Encoding += base64.StdEncoding.EncodeToString(buf.Bytes())
-
-	return img, base64Encoding, nil
-}
-
-func decodeBase64(s string) image.Image {
-	if s == "" {
-		return image.Rect(0, 0, 0, 0)
-	}
-	str := strings.SplitN(s, ",", 2)
-	unbased, err := base64.StdEncoding.DecodeString(str[1])
-	if err != nil {
-		return image.Rect(0, 0, 0, 0)
-	}
-
-	img, _, err := image.Decode(bytes.NewReader(unbased))
-	if err != nil {
-		return image.Rect(0, 0, 0, 0)
-	}
-	return img
 }
 
 func AddVersionChars(mapData []beatsaver.MapVersion) SongDiffs {
@@ -785,7 +740,7 @@ func updateSongInfo(s *playlist.Song) {
 
 		for _, i := range mapInfo.Versions {
 			if strings.EqualFold(i.Hash, s.Hash) {
-				songDiffs[s.Hash] = AddVersionChars(i.Diffs)
+				songDiffs.Store(s.Hash, AddVersionChars(i.Diffs))
 				break
 			}
 		}

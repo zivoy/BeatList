@@ -2,11 +2,14 @@ package playlist
 
 //https://github.com/rithik-b/PlaylistManager/wiki/
 
+// Cover type contains functions for base64 covers
+type Cover string
+
 type Playlist struct {
 	Title       string      `json:"playlistTitle"`
 	Author      string      `json:"playlistAuthor,omitempty"`
 	Description string      `json:"playlistDescription,omitempty"`
-	Cover       string      `json:"image,omitempty"` //base 64 encoded string
+	Cover       Cover       `json:"image,omitempty"` //base 64 encoded string
 	Songs       []*Song     `json:"songs"`
 	CustomData  *CustomData `json:"CustomData,omitempty"`
 }

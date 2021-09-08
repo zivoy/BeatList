@@ -10,7 +10,7 @@ You can load playlists using the `Load` function and save by calling `Save` or `
 ## GUI
 Get the latest GUI app from [Releases](/releases/latest)
 
-###### note: the gui code needs is just something I did quickly and needs serous refactoring
+
 
 [comment]: <> (##Examples)
 

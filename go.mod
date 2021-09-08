@@ -12,6 +12,4 @@ require (
 	github.com/zivoy/BeatList v0.1.0
 )
 
-replace (
-	github.com/zivoy/BeatList => ./
-)
+replace github.com/zivoy/BeatList => ./

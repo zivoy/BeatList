@@ -1,14 +1,17 @@
 package main
 
 import (
+	"fmt"
 	"regexp"
+	"strconv"
+	"strings"
+
+	"fyne.io/fyne/v2/driver/desktop"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/theme"
-	"fyne.io/fyne/v2/widget"
 )
 
 const VERSION = "0.1.1"
@@ -22,9 +25,22 @@ func main() {
 	window = a.NewWindow("BeatList")
 	a.Settings().SetTheme(theme.DarkTheme())
 	window.SetIcon(resourceIconPng)
-	window.Resize(fyne.NewSize(920, 705))
+	var w, h float64
+	w = 920
+	h = 705
+	s := a.Preferences().StringWithFallback("size", fmt.Sprintf("%f,%f", w, h))
+	size := strings.Split(s, ",")
+	width, err := strconv.ParseFloat(size[0], 32)
+	if err != nil {
+		width = w
+	}
+	height, err := strconv.ParseFloat(size[1], 32)
+	if err != nil {
+		height = h
+	}
+	window.Resize(fyne.NewSize(float32(width), float32(height)))
 
-	initLogging(a)
+	defer closeFile(initLogging(a))
 
 	initUpdater("zivoy", "BeatList")
 	initSongListFuncs()
@@ -32,38 +48,16 @@ func main() {
 
 	initGUI()
 
-	songListBar := makeSongListBar()
-
-	var songContainer *fyne.Container
-	if fyne.CurrentDevice().IsMobile() { //todo make a new layout that hides one once size is reached
-		songContainer = container.NewMax(container.NewVSplit(
-			container.NewBorder(nil, songListBar, nil, nil, ui.songInfo.Songs), ui.songInfo.songMeta))
-	} else {
-		Split := container.NewHSplit(ui.songInfo.Songs, container.NewHScroll(ui.songInfo.songMeta))
-		Split.Offset = .45
-		songContainer = container.NewBorder(nil, songListBar, nil, nil, Split)
-	}
-
-	form := container.NewVBox(
-		NewShrinkingColumns(
-			widget.NewCard("Info", "", widget.NewForm(
-				widget.NewFormItem("Image", container.NewHBox(ui.Image, NewCenter(ui.ImageChangeButton, posCenter, posLeading))),
-				widget.NewFormItem("Title", ui.Title),
-				widget.NewFormItem("Author", ui.Author),
-				widget.NewFormItem("Description", ui.Description),
-			)),
-			widget.NewCard("Metadata", "", widget.NewForm(
-				widget.NewFormItem("Read only", ui.ReadOnly),
-				widget.NewFormItem("Allow duplicates", ui.AllowDuplicates),
-				widget.NewFormItem("Sync URL", NewSetMinSize(ui.SyncURL, 240, 0)),
-				widget.NewFormItem("Archive URL", ui.ArchiveURL),
-			))),
-		widget.NewCard("Songs", "", songContainer),
-	)
-
 	loadLastSession()
 
 	window.SetMainMenu(getMainMenu(a))
+
+	window.SetContent(NewSetMinSize(container.NewBorder(nil, ui.LoadingBar, nil, nil,
+		container.NewVScroll(MakePlaylistContainer())), 400, 400))
+
+	if outdated := IsOutdated(VERSION); outdated.Outdated {
+		updateDialog(outdated.Current, VERSION, window)
+	}
 
 	// registering shortcuts
 	ctrlS := desktop.CustomShortcut{KeyName: fyne.KeyS, Modifier: desktop.ControlModifier}
@@ -79,13 +73,7 @@ func main() {
 		saveMenu()
 	})
 
-	window.SetContent(NewSetMinSize(container.NewBorder(nil, ui.LoadingBar, nil, nil, container.NewVScroll(form)), 600, 400))
-
-	if outdated := IsOutdated(VERSION); outdated.Outdated {
-		updateDialog(outdated.Current, VERSION, window)
-	}
-
-	window.SetOnClosed(cleanup)
 	window.SetMaster()
 	window.ShowAndRun()
+	cleanup(a)
 }

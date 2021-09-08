@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -39,22 +40,22 @@ func initStorage(a fyne.App) {
 	}
 }
 
-func initLogging(a fyne.App) {
+func initLogging(a fyne.App) io.Closer {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	logFile, _ = storage.Child(a.Storage().RootURI(), "latest.log")
-	_ = storage.Delete(logFile)
+	err := storage.Delete(logFile)
+	if err != nil {
+		log.Println(err)
+	}
 	f, err := storage.Writer(logFile)
 	if err != nil {
 		log.Fatalf("error opening file: %v", err)
+		return nil
 	}
-	defer func(f fyne.URIWriteCloser) {
-		err := f.Close()
-		if err != nil {
-			log.Println(err)
-		}
-	}(f)
+
 	multi := io.MultiWriter(f, os.Stdout)
 	log.SetOutput(multi)
+	return f
 }
 
 func hash(s string) string {
@@ -72,7 +73,7 @@ func getCached(idName string, readExisting func(reader io.Reader) (interface{}, 
 	if err == nil && exists {
 		r, _ := storage.Reader(cacheLoc)
 		cacheInfo, err = readExisting(r)
-		_ = r.Close()
+		defer closeFile(r)
 		if isBlank(cacheInfo) || err != nil {
 			_ = storage.Delete(cacheLoc)
 			log.Printf("%s encountered an error or was blank, %e", idName, err)
@@ -102,7 +103,6 @@ func getCached(idName string, readExisting func(reader io.Reader) (interface{}, 
 	}
 	if err != nil {
 		log.Println(err)
-
 	} else {
 		err = storeNew(w, cacheInfo)
 		if err != nil {
@@ -114,11 +114,7 @@ func getCached(idName string, readExisting func(reader io.Reader) (interface{}, 
 
 func readLogs() string {
 	reader, err := storage.Reader(logFile)
-	if reader != nil {
-		defer func() {
-			_ = reader.Close()
-		}()
-	}
+	defer closeFile(reader)
 	if err != nil {
 		log.Println(err)
 		return ""
@@ -129,4 +125,17 @@ func readLogs() string {
 		return ""
 	}
 	return strings.Trim(string(logs), "\n ")
+}
+
+func closeFile(file io.Closer) {
+	if file != nil {
+		err := file.Close()
+		if err != nil {
+			if _, file, no, ok := runtime.Caller(1); ok {
+				log.Printf("%s:%d: %s", filepath.Base(file), no, err)
+			} else {
+				log.Println(err)
+			}
+		}
+	}
 }

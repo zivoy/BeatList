@@ -1,6 +1,10 @@
 package main
 
 import (
+	"fmt"
+	"log"
+	"time"
+
 	"fyne.io/fyne/v2/dialog"
 	"github.com/zivoy/BeatList/pkg/playlist"
 
@@ -20,6 +24,7 @@ func newBlank() {
 }
 
 func loadLastSession() {
+	defer ui.refresh()
 	if fyne.CurrentApp().Preferences().BoolWithFallback("changes", false) {
 		r, err := storage.Reader(lastOpened)
 		if err != nil {
@@ -27,7 +32,9 @@ func loadLastSession() {
 			return
 		}
 		activePlaylist, err = playlist.Load(r)
+		closeFile(r)
 		if err != nil {
+			log.Println(err)
 			activePlaylist = playlist.EmptyPlaylist()
 			return
 		}
@@ -36,12 +43,13 @@ func loadLastSession() {
 		// load info on songs
 		go loadAll(activePlaylist.Songs)
 
-		_ = r.Close()
-		_ = storage.Delete(lastOpened)
+		err = storage.Delete(lastOpened)
+		if err != nil {
+			log.Println(err)
+		}
 		fyne.CurrentApp().Preferences().SetString("lastOpened", "")
 		fyne.CurrentApp().Preferences().RemoveValue("lastOpened")
 		lastOpened = defaultLoc
-		ui.refresh()
 		return
 	}
 	activePlaylist = playlist.EmptyPlaylist()
@@ -57,13 +65,27 @@ func changes(val ...bool) bool {
 	return fyne.CurrentApp().Preferences().BoolWithFallback("changes", false)
 }
 
-func cleanup() {
+func cleanup(a fyne.App) {
+	w, h := window.Canvas().Size().Components()
+	a.Preferences().SetString("size", fmt.Sprintf("%f,%f", w, h))
 	if changes() {
-		temp, _ := storage.Child(fyne.CurrentApp().Storage().RootURI(), lastOpened.Name())
-		fyne.CurrentApp().Preferences().SetString("lastOpened", temp.String())
-		w, _ := storage.Writer(temp)
-		_ = activePlaylist.Save(w)
-		_ = w.Close()
+		<-time.After(200 * time.Millisecond) // second preference line won't write to file if there is no gap
+		temp, err := storage.Child(a.Storage().RootURI(), lastOpened.Name())
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		a.Preferences().SetString("lastOpened", temp.String())
+		w, err := storage.Writer(temp)
+		defer closeFile(w)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		err = activePlaylist.Save(w)
+		if err != nil {
+			log.Println(err)
+		}
 	}
 }
 

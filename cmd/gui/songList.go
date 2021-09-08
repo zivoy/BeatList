@@ -3,11 +3,11 @@ package main
 import (
 	//"github.com/zivoy/BeatList/internal/beatsaver"
 	"BeatList/internal/beatsaver"
+	"log"
 
 	"github.com/zivoy/BeatList/pkg/playlist"
 
 	"fmt"
-	"log"
 	"math"
 	"net/url"
 	"strings"
@@ -66,7 +66,7 @@ func initSongList() *SongListUI {
 		widget.NewFormItem("Mapper", songListUI.SongMapper),
 		widget.NewFormItem("Highlighted Diffs", songListUI.SongDiffs),
 		widget.NewFormItem("Beatsaver ID", songListUI.SongId),
-	), 0, 300)
+	), 0, 160)
 	songListUI.Songs.OnUnselected = func(id widget.ListItemID) {
 		itemSelected = false
 		songListUI.SongDiffChecks.Hide()

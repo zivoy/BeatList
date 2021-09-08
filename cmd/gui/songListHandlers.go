@@ -204,9 +204,7 @@ func fetchCover(url string, stop func() bool) playlist.Cover {
 		log.Println(err)
 		return ""
 	}
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(response.Body)
+	defer closeFile(response.Body)
 
 	if response.StatusCode != 200 {
 		log.Println(url, response.StatusCode)

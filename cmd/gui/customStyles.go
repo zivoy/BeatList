@@ -124,3 +124,35 @@ func (m MinSize) Layout(objects []fyne.CanvasObject, containerSize fyne.Size) {
 func NewSetMinSize(obj fyne.CanvasObject, width, height float32) *fyne.Container {
 	return container.New(&MinSize{w: width, h: height}, obj)
 }
+
+// --
+
+type SizeSwitcher struct {
+	switchSize float32
+	size       fyne.Size
+}
+
+func (a *SizeSwitcher) Layout(objs []fyne.CanvasObject, cont fyne.Size) {
+	a.size = cont
+	o1 := objs[0]
+	o2 := objs[1]
+	if a.size.Width > a.switchSize {
+		o1.Show()
+		o2.Hide()
+		o1.Resize(cont)
+	} else {
+		o1.Hide()
+		o2.Show()
+		o2.Resize(cont)
+	}
+}
+func (a SizeSwitcher) MinSize(objs []fyne.CanvasObject) fyne.Size {
+	if a.size.Width > a.switchSize {
+		return objs[0].MinSize()
+	}
+	return objs[1].MinSize()
+}
+
+func NewSizeSwitcher(switchSize float32, o1, o2 fyne.CanvasObject) *fyne.Container {
+	return container.New(&SizeSwitcher{size: fyne.NewSize(10, 10), switchSize: switchSize}, o1, o2)
+}

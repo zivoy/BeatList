@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 
+	"fyne.io/fyne/v2/container"
+
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/storage"
 	"github.com/zivoy/BeatList/pkg/playlist"
@@ -22,6 +24,43 @@ type UI struct {
 }
 
 var ui UI
+
+func MakePlaylistContainer() *fyne.Container {
+	songListBar := makeSongListBar()
+
+	Split := container.NewVSplit(container.NewBorder(nil, songListBar, nil, nil, ui.songInfo.Songs),
+		container.NewHScroll(ui.songInfo.songMeta))
+	Split.Offset = .6
+	vertical := NewSetMinSize(Split, 0, 350)
+
+	Split = container.NewHSplit(ui.songInfo.Songs, container.NewHScroll(ui.songInfo.songMeta))
+	Split.Offset = .45
+	horizontal := container.NewBorder(nil, songListBar, nil, nil, Split)
+
+	var songContainer *fyne.Container
+	if fyne.CurrentDevice().IsMobile() {
+		songContainer = container.NewMax(vertical)
+	} else {
+		songContainer = NewSizeSwitcher(600, horizontal, vertical)
+	}
+
+	return container.NewBorder(
+		NewShrinkingColumns(
+			widget.NewCard("Info", "", widget.NewForm(
+				widget.NewFormItem("Image", container.NewHBox(ui.Image, NewCenter(ui.ImageChangeButton, posCenter, posLeading))),
+				widget.NewFormItem("Title", ui.Title),
+				widget.NewFormItem("Author", ui.Author),
+				widget.NewFormItem("Description", ui.Description),
+			)),
+			widget.NewCard("Metadata", "", widget.NewForm(
+				widget.NewFormItem("Read only", ui.ReadOnly),
+				widget.NewFormItem("Allow duplicates", ui.AllowDuplicates),
+				widget.NewFormItem("Sync URL", NewSetMinSize(ui.SyncURL, 240, 0)),
+				widget.NewFormItem("Archive URL", ui.ArchiveURL),
+			))), nil, nil, nil,
+		widget.NewCard("Songs", "", songContainer),
+	)
+}
 
 func initGUI() {
 	ui = UI{}
@@ -60,12 +99,7 @@ func initGUI() {
 			if closer == nil {
 				return
 			}
-			defer func(closer fyne.URIReadCloser) {
-				err := closer.Close()
-				if err != nil {
-					log.Println(err)
-				}
-			}(closer)
+			defer closeFile(closer)
 
 			cover, err := playlist.ReaderToCover(closer)
 			if err != nil {
@@ -86,10 +120,15 @@ func initGUI() {
 
 	// metadata
 	ui.ReadOnly = widget.NewCheck("", func(b bool) {
+		if b != activePlaylist.CustomData.ReadOnly {
+			changes(true)
+		}
 		activePlaylist.CustomData.ReadOnly = b
-		changes(true)
 	})
 	ui.AllowDuplicates = widget.NewCheck("", func(b bool) {
+		if b != activePlaylist.CustomData.AllowDuplicates {
+			changes(true)
+		}
 		activePlaylist.CustomData.AllowDuplicates = b
 		if !b {
 			items := map[string]bool{}
@@ -107,7 +146,6 @@ func initGUI() {
 			}
 			activePlaylist.Songs = songs
 		}
-		changes(true)
 	})
 	ui.SyncURL = widget.NewEntry()
 	ui.SyncURL.OnChanged = func(s string) {
@@ -127,6 +165,8 @@ func initGUI() {
 }
 
 func (u UI) refresh() {
+	UpdateTitle()
+
 	u.Author.SetText(activePlaylist.Author)
 	u.Description.SetText(activePlaylist.Description)
 	u.Title.SetText(activePlaylist.Title)

@@ -22,12 +22,7 @@ func saveMenu() {
 		if closer == nil {
 			return
 		}
-		defer func(closer fyne.URIWriteCloser) {
-			err := closer.Close()
-			if err != nil {
-				log.Println(err)
-			}
-		}(closer)
+		defer closeFile(closer)
 
 		err = activePlaylist.SavePretty(closer)
 		if err != nil {
@@ -53,12 +48,7 @@ func openMenu() {
 			if closer == nil {
 				return
 			}
-			defer func(closer fyne.URIReadCloser) {
-				err := closer.Close()
-				if err != nil {
-					log.Println(err)
-				}
-			}(closer)
+			defer closeFile(closer)
 
 			p, err := playlist.Load(closer)
 			if err != nil {

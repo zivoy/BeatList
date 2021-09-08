@@ -95,7 +95,7 @@ func main() {
 	window = a.NewWindow("BeatList")
 	a.Settings().SetTheme(theme.DarkTheme())
 	window.SetIcon(resourceIconPng)
-	window.Resize(fyne.NewSize(750, 950))
+	window.Resize(fyne.NewSize(920, 705))
 
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	logFile, _ := storage.Child(a.Storage().RootURI(), "latest.log")
@@ -223,12 +223,12 @@ func main() {
 	ui.SongDiffs = container.NewVBox(ui.SongDiffText, ui.SongDiffDropDown, ui.SongDiffChecks)
 
 	ui.SongId = widget.NewHyperlink("", nil)
-	songInfo := widget.NewForm(
+	songInfo := NewMinSize(widget.NewForm(
 		widget.NewFormItem("Map name", ui.SongName),
 		widget.NewFormItem("Mapper", ui.SongMapper),
 		widget.NewFormItem("Highlighted Diffs", ui.SongDiffs),
 		widget.NewFormItem("Beatsaver ID", ui.SongId),
-	)
+	), 0, 300)
 	var selected widget.ListItemID
 	var selectedS bool
 	ui.Songs.OnUnselected = func(id widget.ListItemID) {
@@ -329,6 +329,7 @@ func main() {
 	songListBar := widget.NewToolbar(
 		widget.NewToolbarAction(theme.ContentAddIcon(), func() {
 			id := widget.NewEntry()
+			//todo make a search item instead of linking to the beatsaver website
 			id.SetPlaceHolder("Beatsaver ID or URL")
 			beatsaverUrl, _ := url.Parse("https://beatsaver.com/")
 			dialog.ShowForm("Beatsaver URL / ID", "Add", "cancel", widget.NewForm(
@@ -438,50 +439,51 @@ func main() {
 	ui.ArchiveURL.SetPlaceHolder("(Optional)")
 
 	form := container.NewVBox(
-		widget.NewCard("Info", "", widget.NewForm(
-			widget.NewFormItem("Image", container.NewHBox(ui.Image, container.NewVBox(widget.NewButton("Change", func() {
-				d := dialog.NewFileOpen(func(closer fyne.URIReadCloser, err error) {
-					if err != nil {
-						dialog.ShowError(err, window)
-						log.Println(err)
-						return
-					}
-					if closer == nil {
-						return
-					}
-					defer func(closer fyne.URIReadCloser) {
-						err := closer.Close()
+		NewShrinkingColumns(
+			widget.NewCard("Info", "", widget.NewForm(
+				widget.NewFormItem("Image", container.NewHBox(ui.Image, container.NewVBox(widget.NewButton("Change", func() {
+					d := dialog.NewFileOpen(func(closer fyne.URIReadCloser, err error) {
+						if err != nil {
+							dialog.ShowError(err, window)
+							log.Println(err)
+							return
+						}
+						if closer == nil {
+							return
+						}
+						defer func(closer fyne.URIReadCloser) {
+							err := closer.Close()
+							if err != nil {
+								log.Println(err)
+							}
+						}(closer)
+
+						cover, err := playlist.ReaderToCover(closer)
 						if err != nil {
 							log.Println(err)
 						}
-					}(closer)
+						cover.Rescale(imageSize)
 
-					cover, err := playlist.ReaderToCover(closer)
-					if err != nil {
-						log.Println(err)
-					}
-					cover.Rescale(imageSize)
-
-					activePlaylist.Cover = cover
-					ui.Image.Image = canvas.NewImageFromImage(cover.GetImage()).Image
-					ui.Image.Refresh()
-					ui.Image.Show()
-					changes(true)
-				}, window)
-				d.SetFilter(storage.NewMimeTypeFileFilter([]string{"image/png", "image/jpeg"})) //"image/gif"}))
-				//d.SetFileName(defaultLoc.)
-				d.Show()
-			})))),
-			widget.NewFormItem("Title", ui.Title),
-			widget.NewFormItem("Author", ui.Author),
-			widget.NewFormItem("Description", ui.Description),
-		)),
-		widget.NewCard("Metadata", "", widget.NewForm(
-			widget.NewFormItem("Read only", ui.ReadOnly),
-			widget.NewFormItem("Allow duplicates", ui.AllowDuplicates),
-			widget.NewFormItem("Sync URL", ui.SyncURL),
-			widget.NewFormItem("Archive URL", ui.ArchiveURL),
-		)),
+						activePlaylist.Cover = cover
+						ui.Image.Image = canvas.NewImageFromImage(cover.GetImage()).Image
+						ui.Image.Refresh()
+						ui.Image.Show()
+						changes(true)
+					}, window)
+					d.SetFilter(storage.NewMimeTypeFileFilter([]string{"image/png", "image/jpeg"})) //"image/gif"}))
+					//d.SetFileName(defaultLoc.)
+					d.Show()
+				})))),
+				widget.NewFormItem("Title", ui.Title),
+				widget.NewFormItem("Author", ui.Author),
+				widget.NewFormItem("Description", ui.Description),
+			)),
+			widget.NewCard("Metadata", "", widget.NewForm(
+				widget.NewFormItem("Read only", ui.ReadOnly),
+				widget.NewFormItem("Allow duplicates", ui.AllowDuplicates),
+				widget.NewFormItem("Sync URL", NewMinSize(ui.SyncURL, 400, 0)),
+				widget.NewFormItem("Archive URL", ui.ArchiveURL),
+			))),
 		widget.NewCard("Songs", "", songContainer),
 	)
 
@@ -574,7 +576,7 @@ func main() {
 		saveMenu()
 	})
 
-	window.SetContent(container.NewBorder(nil, ui.LoadingBar, nil, nil, form))
+	window.SetContent(NewMinSize(container.NewBorder(nil, ui.LoadingBar, nil, nil, container.NewVScroll(form)), 600, 400))
 
 	res, err := latest.Check(githubTag, VERSION)
 	if err == nil && res.Outdated {
@@ -1169,4 +1171,46 @@ func fetchCover(url string, stop func() bool) playlist.Cover {
 		log.Println(err)
 	}
 	return cover
+}
+
+type AdaptiveColumn struct {
+	vertical bool
+	size     fyne.Size
+}
+
+func (a *AdaptiveColumn) Layout(objs []fyne.CanvasObject, cont fyne.Size) {
+	a.size = cont
+	pos := fyne.NewPos(0, 0)
+	for _, o := range objs {
+		if a.vertical {
+			s := o.MinSize().Height
+			o.Resize(fyne.NewSize(cont.Width, s))
+			o.Move(pos)
+			pos = pos.Add(fyne.NewPos(0, s))
+		} else {
+			s := cont.Width / float32(len(objs))
+			o.Resize(fyne.NewSize(s, cont.Height))
+			o.Move(pos)
+			pos = pos.Add(fyne.NewPos(s, 0))
+		}
+	}
+}
+func (a *AdaptiveColumn) MinSize(objs []fyne.CanvasObject) fyne.Size {
+	var w, h, sumWidth, sumHeight float32
+	for _, O := range objs {
+		s := O.MinSize()
+		sumWidth += s.Width
+		sumHeight += s.Height
+		w = fyne.Max(w, s.Width)
+		h = fyne.Max(h, s.Height)
+	}
+	a.vertical = sumWidth > a.size.Width
+	if a.vertical {
+		h = sumHeight
+	}
+	return fyne.NewSize(w, h)
+}
+
+func NewShrinkingColumns(obj ...fyne.CanvasObject) *fyne.Container {
+	return container.New(&AdaptiveColumn{size: fyne.NewSize(10, 10)}, obj...)
 }

@@ -6,4 +6,4 @@ then
   exit 1
 fi
 
-fyne-cross linux -app-id com.zivoy.beatlist -app-version $VERSION -arch=* ./cmd/gui
+fyne-cross linux -app-id com.zivoy.beatlist -app-version $VERSION -arch=amd64,arm ./cmd/gui

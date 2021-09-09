@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-export VERSION=0.1.1
+export VERSION=0.1.2
+export AppId=com.zivoy.beatlist
+export Name=BeatList
 
 if [ ! -d "scripts" ]; then
   echo "run from root dir"

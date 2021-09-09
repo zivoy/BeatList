@@ -14,7 +14,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 )
 
-const VERSION = "0.1.1"
+const VERSION = "0.1.2"
 const imageSize = 512 // 512 by 512 pixels
 var BeatSaverRe = regexp.MustCompile(`(?i)(?:beatsaver\.com/maps/|!bsr )?([[0-9A-F]+).*`)
 

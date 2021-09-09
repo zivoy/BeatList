@@ -21,7 +21,7 @@ var BeatSaverRe = regexp.MustCompile(`(?i)(?:beatsaver\.com/maps/|!bsr )?([[0-9A
 var window fyne.Window
 
 func main() {
-	a := app.NewWithID("BeatList")
+	a := app.NewWithID("BeatList") //com.zivoy.beatlist
 	window = a.NewWindow("BeatList")
 	a.Settings().SetTheme(theme.DarkTheme())
 	window.SetIcon(resourceIconPng)

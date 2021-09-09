@@ -40,7 +40,10 @@ mv ./cmd/gui/fyne-cross .
 echo moving files
 for f in ./fyne-cross/dist/*; do
   file=$(cd "$f" && ls)
-  cp "$f/$file" "release/$(basename "$f")-$file"
+  name="release/$(basename "$f")-$file"
+  name=${name//amd64/x64}
+  name=${name//386/x86}
+  cp "$f/$file" "$name"
 done
 
 rm -rf fyne-cross

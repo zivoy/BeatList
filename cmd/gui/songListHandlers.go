@@ -1,8 +1,7 @@
 package main
 
 import (
-	//"github.com/zivoy/BeatList/internal/beatsaver"
-	"BeatList/internal/beatsaver"
+	"github.com/zivoy/BeatList/internal/beatsaver"
 	"image/color"
 	"io"
 	"io/ioutil"

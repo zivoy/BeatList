@@ -1,8 +1,7 @@
 package main
 
 import (
-	//"github.com/zivoy/BeatList/internal/beatsaver"
-	"BeatList/internal/beatsaver"
+	"github.com/zivoy/BeatList/internal/beatsaver"
 	"log"
 
 	"github.com/zivoy/BeatList/pkg/playlist"

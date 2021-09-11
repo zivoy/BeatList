@@ -113,6 +113,7 @@ func initSongList() *SongListUI {
 
 				for i, o := range songListUI.SongDiffChecks.Objects {
 					object := o.(*widget.Check)
+					object.OnChanged = func(b bool) {}
 					if diffs[i] {
 						object.Show() //todo custom diff names
 						object.SetChecked(false)
@@ -143,6 +144,7 @@ func initSongList() *SongListUI {
 								}
 							}
 						}
+						changes(true)
 					}
 				}
 			}

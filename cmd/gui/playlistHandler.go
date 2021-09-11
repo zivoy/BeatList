@@ -29,6 +29,7 @@ func loadLastSession() {
 		r, err := storage.Reader(lastOpened)
 		if err != nil {
 			activePlaylist = playlist.EmptyPlaylist()
+			changes(false)
 			return
 		}
 		activePlaylist, err = playlist.Load(r)
@@ -36,6 +37,7 @@ func loadLastSession() {
 		if err != nil {
 			log.Println(err)
 			activePlaylist = playlist.EmptyPlaylist()
+			changes(false)
 			return
 		}
 		changes(true)

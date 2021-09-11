@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-export VERSION=0.1.3
+export VERSION=0.1.4
 export AppId=com.zivoy.beatlist
 export Name=BeatList
 

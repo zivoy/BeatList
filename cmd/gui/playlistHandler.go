@@ -67,9 +67,11 @@ func changes(val ...bool) bool {
 
 func cleanup(a fyne.App) {
 	w, h := window.Canvas().Size().Components()
-	a.Preferences().SetString("size", fmt.Sprintf("%f,%f", w, h))
+	if !window.FullScreen() { //todo detect maximised
+		a.Preferences().SetString("size", fmt.Sprintf("%f,%f", w, h))
+	}
 	if changes() {
-		<-time.After(200 * time.Millisecond) // second preference line won't write to file if there is no gap
+		<-time.After(200 * time.Millisecond) // todo remove with fyne 2.1
 		temp, err := storage.Child(a.Storage().RootURI(), lastOpened.Name())
 		if err != nil {
 			log.Println(err)

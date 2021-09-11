@@ -139,3 +139,7 @@ func closeFile(file io.Closer) {
 		}
 	}
 }
+
+func getBaseDir(uri fyne.URI) fyne.URI {
+	return storage.NewFileURI(filepath.Dir(uri.Path()))
+}

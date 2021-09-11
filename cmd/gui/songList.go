@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/zivoy/BeatList/internal/beatsaver"
 	"log"
+
+	"github.com/zivoy/BeatList/internal/beatsaver"
 
 	"github.com/zivoy/BeatList/pkg/playlist"
 
@@ -97,7 +98,13 @@ func initSongList() *SongListUI {
 
 			CharacteristicOptions = details.chars
 			songListUI.SongDiffDropDown.Options = CharacteristicOptions
-			songListUI.SongDiffDropDown.Selected = CharacteristicOptions[0]
+			selected := 0
+			for i, c := range CharacteristicOptions {
+				if c == playlist.CharacteristicStandard {
+					selected = i
+				}
+			}
+			songListUI.SongDiffDropDown.SetSelected(CharacteristicOptions[selected])
 
 			songDetails := details
 			selectedSong := song
@@ -142,6 +149,8 @@ func initSongList() *SongListUI {
 			songListUI.SongDiffDropDown.Refresh()
 			songListUI.SongDiffDropDown.OnChanged(CharacteristicOptions[0])
 		}
+
+		//songListUI.Songs.ad
 
 		songListUI.SongName.SetText(song.SongName)
 		songListUI.SongMapper.SetText(song.LevelAuthorName)
@@ -241,7 +250,7 @@ func makeSongListBar() *widget.Toolbar {
 						meta.Cover = version.CoverURL
 						songDiffs.Store(version.Hash, meta)
 						changes(true)
-						songListUI.Songs.Refresh()
+						songListUI.Songs.Select(len(activePlaylist.Songs) - 1)
 					}
 				}, window)
 		}),

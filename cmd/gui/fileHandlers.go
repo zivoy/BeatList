@@ -33,10 +33,17 @@ func saveMenu() {
 		changes(false)
 	}, window)
 	d.SetFileName(lastOpened.Name())
+	uri, err := storage.ListerForURI(getBaseDir(lastOpened))
+	if err == nil {
+		d.SetLocation(uri)
+	}
 	d.SetFilter(playlistFilter)
+	size := window.Canvas().Size()
+	d.Resize(fyne.NewSize(size.Width*.8, size.Height*.8))
 	d.Show()
 }
 
+//todo open recents
 func openMenu() {
 	confirmUnedited(func() {
 		d := dialog.NewFileOpen(func(closer fyne.URIReadCloser, err error) {
@@ -64,17 +71,20 @@ func openMenu() {
 			}()
 
 			lastOpened = closer.URI()
+			fyne.CurrentApp().Preferences().SetString("lastOpened", lastOpened.String())
 			activePlaylist = p
 			ui.refresh()
 			changes(false)
 		}, window)
 		//d.SetFileName(lastOpened.Name())
-		//uri, _ := storage.ListerForURI(lastOpened)
-		//if err != nil {
-		//	return
-		//}
-		//d.SetLocation()
+		uri, err := storage.ListerForURI(getBaseDir(lastOpened))
+		if err == nil {
+			d.SetLocation(uri)
+		}
 		d.SetFilter(playlistFilter)
+		size := window.Canvas().Size()
+		d.Resize(fyne.NewSize(size.Width*.8, size.Height*.8))
+		//todo add beat saber folder to favourites
 		d.Show()
 	}, window)
 }

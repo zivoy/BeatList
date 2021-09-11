@@ -1,3 +1,5 @@
+//go:generate fyne bundle -o bundled.go Icon.png
+
 package main
 
 import (
@@ -20,6 +22,9 @@ var BeatSaverRe = regexp.MustCompile(`(?i)(?:beatsaver\.com/maps/|!bsr )?([[0-9A
 
 var window fyne.Window
 
+//todo second main menu screen with selector and stuff
+// create a transition effect using the virtual canvas
+// todo make mobile friendly ver of ui
 func main() {
 	a := app.NewWithID("BeatList") //com.zivoy.beatlist
 	window = a.NewWindow("BeatList")

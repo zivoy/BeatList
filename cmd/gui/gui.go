@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"log"
+	"net/url"
 
 	"fyne.io/fyne/v2/container"
 
@@ -153,12 +155,14 @@ func initGUI() {
 		changes(true)
 	}
 	ui.SyncURL.SetPlaceHolder("(Optional)")
+	ui.SyncURL.Validator = verifyUrl
 	ui.ArchiveURL = widget.NewEntry()
 	ui.ArchiveURL.OnChanged = func(s string) {
 		activePlaylist.CustomData.ArchiveURL = s
 		changes(true)
 	}
 	ui.ArchiveURL.SetPlaceHolder("(Optional)")
+	ui.ArchiveURL.Validator = verifyUrl
 
 	// songlist
 	ui.songInfo = initSongList()
@@ -181,11 +185,35 @@ func (u UI) refresh() {
 	u.ReadOnly.SetChecked(activePlaylist.CustomData.ReadOnly)
 	u.AllowDuplicates.SetChecked(activePlaylist.CustomData.AllowDuplicates)
 	u.SyncURL.SetText(activePlaylist.CustomData.SyncURL)
+	if u.SyncURL.Text == "" {
+		u.SyncURL.SetValidationError(nil)
+	}
 	u.ArchiveURL.SetText(activePlaylist.CustomData.ArchiveURL)
-
+	if u.ArchiveURL.Text == "" {
+		u.ArchiveURL.SetValidationError(nil)
+	}
 	u.songInfo.SongDiffChecks.Hide()
 	u.songInfo.SongDiffText.Show()
 	u.songInfo.SongDiffDropDown.Hide()
 	u.songInfo.Songs.Select(0)
 	u.songInfo.Songs.Unselect(0)
+
+	u.ArchiveURL.SetValidationError(nil)
+}
+
+func verifyUrl(s string) error {
+	if s == "" {
+		return nil
+	}
+	u, err := url.ParseRequestURI(s)
+	if err != nil {
+		return errors.New("bad url")
+	}
+	if !(u.Scheme == "https" || u.Scheme == "http") {
+		return errors.New("bad url scheme")
+	}
+	if u.Host == "" {
+		return errors.New("missing url host")
+	}
+	return nil
 }

@@ -1,4 +1,5 @@
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/zivoy/BeatList?style=flat-square)](https://github.com/zivoy/BeatList/releases/latest)
+[![Go Reference](https://pkg.go.dev/badge/github.com/zivoy/BeatList/pkg/playlist.svg)](https://pkg.go.dev/github.com/zivoy/BeatList/pkg/playlist)
 [![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/zivoy/BeatList?style=flat-square)](https://golang.org/dl/)
 [![Fyne Version](https://img.shields.io/badge/Fyne-v2.0.4-blue?style=flat-square)](https://github.com/fyne-io/fyne/tree/v2.0.4)
 
@@ -10,9 +11,7 @@ BeatList is a Beatsaber playlist creation and editing tool that can be deployed 
 
 you can find more info on playlists on the [PlaylistManager](https://github.com/rithik-b/PlaylistManager/wiki) wiki page
 
-## Library
-[![Go Reference](https://pkg.go.dev/badge/github.com/zivoy/BeatList/pkg/playlist.svg)](https://pkg.go.dev/github.com/zivoy/BeatList/pkg/playlist)
-
+## Module
 You can load playlists using the `Load` function and save by calling `Save` or `SavePretty` on the Playlist.
 
 The `Cover` type has functions for dealing with base64 encoded images.

@@ -156,3 +156,72 @@ func (a SizeSwitcher) MinSize(objs []fyne.CanvasObject) fyne.Size {
 func NewSizeSwitcher(switchSize float32, o1, o2 fyne.CanvasObject) *fyne.Container {
 	return container.New(&SizeSwitcher{size: fyne.NewSize(10, 10), switchSize: switchSize}, o1, o2)
 }
+
+// --
+
+type AdvancedColumns struct {
+	size fyne.Size
+}
+
+func (a *AdvancedColumns) Layout(objs []fyne.CanvasObject, cont fyne.Size) {
+	a.size = cont
+
+	var x, y, h float32
+	for _, o := range objs {
+		if !o.Visible() {
+			continue
+		}
+		s := o.MinSize()
+		if cont.Width < x+s.Width {
+			// move down
+			y += h //+ theme.Padding() // todo padding
+			x = 0
+			h = 0
+		}
+		o.Resize(s)
+		o.Move(fyne.NewPos(x, y))
+		h = fyne.Max(s.Height, h)
+		x += s.Width //+ theme.Padding()
+	}
+}
+
+func (a AdvancedColumns) MinSize(objs []fyne.CanvasObject) fyne.Size {
+	//            row, size
+	items := make([][]fyne.Size, 0)
+
+	var w float32
+	row := make([]fyne.Size, 0)
+	for _, o := range objs {
+		if !o.Visible() {
+			continue
+		}
+		s := o.MinSize()
+		if a.size.Width < w+s.Width {
+			w = 0
+			items = append(items, row)
+			row = make([]fyne.Size, 0)
+		}
+		row = append(row, s)
+		w += s.Width
+	}
+	items = append(items, row)
+
+	var h, maxH float32 //rowW
+	w = 0
+	for _, row := range items {
+		//rowW = 0
+		maxH = 0
+		for _, s := range row {
+			maxH = fyne.Max(s.Height, maxH)
+			//rowW += s.Width
+			w = fyne.Max(w, s.Width)
+		}
+		h += maxH
+		//w = fyne.Max(w, rowW)
+	}
+	return fyne.NewSize(w, h) //paddingAmount
+}
+
+func NewAdvancedColumns(objects ...fyne.CanvasObject) *fyne.Container {
+	return container.New(&AdvancedColumns{size: fyne.NewSize(10, 10)}, objects...)
+}

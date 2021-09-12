@@ -50,7 +50,7 @@ func initSongList() *SongListUI {
 	CharacteristicOptions := make([]string, 0)
 	songListUI.SongDiffDropDown = widget.NewSelect(CharacteristicOptions, func(_ string) {})
 	songListUI.SongDiffDropDown.Hide()
-	songListUI.SongDiffChecks = container.NewHBox( // todo change this to allow wrapping
+	songListUI.SongDiffChecks = NewAdvancedColumns(
 		widget.NewCheck("Easy", func(_ bool) {}),
 		widget.NewCheck("Normal", func(_ bool) {}),
 		widget.NewCheck("Hard", func(_ bool) {}),

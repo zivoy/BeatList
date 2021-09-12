@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"net/url"
+	"strings"
 
 	"fyne.io/fyne/v2/container"
 
@@ -212,7 +213,7 @@ func verifyUrl(s string) error {
 	if !(u.Scheme == "https" || u.Scheme == "http") {
 		return errors.New("bad url scheme")
 	}
-	if u.Host == "" {
+	if u.Host == "" || !strings.ContainsRune(u.Host, '.') {
 		return errors.New("missing url host")
 	}
 	return nil

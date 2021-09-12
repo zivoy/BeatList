@@ -104,7 +104,6 @@ func initSongList() *SongListUI {
 					selected = i
 				}
 			}
-			songListUI.SongDiffDropDown.SetSelected(CharacteristicOptions[selected])
 
 			songDetails := details
 			selectedSong := song
@@ -148,8 +147,7 @@ func initSongList() *SongListUI {
 					}
 				}
 			}
-			songListUI.SongDiffDropDown.Refresh()
-			songListUI.SongDiffDropDown.OnChanged(CharacteristicOptions[0])
+			songListUI.SongDiffDropDown.SetSelected(CharacteristicOptions[selected])
 		}
 
 		//songListUI.Songs.ad

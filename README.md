@@ -1,3 +1,7 @@
+[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/zivoy/BeatList?style=flat-square)](https://github.com/zivoy/BeatList/releases/latest)
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/zivoy/BeatList?style=flat-square)
+![Fyne Version](https://img.shields.io/badge/Fyne-v2.0.4-blue?style=flat-square)
+
 # BeatList
 ### Go library for beatsaber playlists
 <img alt="image" height="256" src="./cmd/gui/Icon.png" width="256"/>
@@ -25,7 +29,7 @@ Get the latest GUI app from [Releases](/releases/latest)
   - <kbd>Ctrl</kbd> + <kbd>S</kbd> for saving current playlist
   - <kbd>Ctrl</kbd> + <kbd>O</kbd> for opening a new playlist
   - <kbd>Ctrl</kbd> + <kbd>N</kbd> for starting a new playlist
-- Add songs using the `+` icon and remove them using the `x` icon under the songlist
+- Add songs using the `+` icon and remove them using the `x` buttons under the songlist
 - Rearrange songs using the `↑` and `↓` arrows
 
 [comment]: <> (##Examples)

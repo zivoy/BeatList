@@ -174,14 +174,14 @@ func (a *AdvancedColumns) Layout(objs []fyne.CanvasObject, cont fyne.Size) {
 		s := o.MinSize()
 		if cont.Width < x+s.Width {
 			// move down
-			y += h //+ theme.Padding() // todo padding
+			y += h
 			x = 0
 			h = 0
 		}
 		o.Resize(s)
 		o.Move(fyne.NewPos(x, y))
 		h = fyne.Max(s.Height, h)
-		x += s.Width //+ theme.Padding()
+		x += s.Width
 	}
 }
 
@@ -206,20 +206,17 @@ func (a AdvancedColumns) MinSize(objs []fyne.CanvasObject) fyne.Size {
 	}
 	items = append(items, row)
 
-	var h, maxH float32 //rowW
+	var h, maxH float32
 	w = 0
 	for _, row := range items {
-		//rowW = 0
 		maxH = 0
 		for _, s := range row {
 			maxH = fyne.Max(s.Height, maxH)
-			//rowW += s.Width
 			w = fyne.Max(w, s.Width)
 		}
 		h += maxH
-		//w = fyne.Max(w, rowW)
 	}
-	return fyne.NewSize(w, h) //paddingAmount
+	return fyne.NewSize(w, h)
 }
 
 func NewAdvancedColumns(objects ...fyne.CanvasObject) *fyne.Container {

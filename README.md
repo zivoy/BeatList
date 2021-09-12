@@ -1,6 +1,6 @@
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/zivoy/BeatList?style=flat-square)](https://github.com/zivoy/BeatList/releases/latest)
-![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/zivoy/BeatList?style=flat-square)
-![Fyne Version](https://img.shields.io/badge/Fyne-v2.0.4-blue?style=flat-square)
+[![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/zivoy/BeatList?style=flat-square)](https://golang.org/dl/)
+[![Fyne Version](https://img.shields.io/badge/Fyne-v2.0.4-blue?style=flat-square)](https://github.com/fyne-io/fyne/tree/v2.0.4)
 
 # BeatList
 ### Go library for beatsaber playlists

@@ -57,8 +57,8 @@ func MakePlaylistContainer() *fyne.Container {
 			)),
 			widget.NewCard("Metadata", "", widget.NewForm(
 				widget.NewFormItem("Read only", ui.ReadOnly),
-				widget.NewFormItem("Allow duplicates", ui.AllowDuplicates),
-				widget.NewFormItem("Sync URL", NewSetMinSize(ui.SyncURL, 240, 0)),
+				widget.NewFormItem("Allow duplicates", NewSetMinSize(ui.AllowDuplicates, 240, 0)),
+				widget.NewFormItem("Sync URL", ui.SyncURL),
 				widget.NewFormItem("Archive URL", ui.ArchiveURL),
 			))), nil, nil, nil,
 		widget.NewCard("Songs", "", songContainer),
@@ -152,6 +152,12 @@ func initGUI() {
 	})
 	ui.SyncURL = widget.NewEntry()
 	ui.SyncURL.OnChanged = func(s string) {
+		s1 := strings.TrimSpace(s)
+		if s != s1 {
+			ui.SyncURL.SetText(s1)
+			return
+		}
+
 		activePlaylist.CustomData.SyncURL = s
 		changes(true)
 	}
@@ -159,6 +165,12 @@ func initGUI() {
 	ui.SyncURL.Validator = verifyUrl
 	ui.ArchiveURL = widget.NewEntry()
 	ui.ArchiveURL.OnChanged = func(s string) {
+		s1 := strings.TrimSpace(s)
+		if s != s1 {
+			ui.ArchiveURL.SetText(s1)
+			return
+		}
+
 		activePlaylist.CustomData.ArchiveURL = s
 		changes(true)
 	}

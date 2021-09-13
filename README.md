@@ -19,7 +19,7 @@ The `Cover` type has functions for dealing with base64 encoded images.
 more info in the [godoc](https://pkg.go.dev/github.com/zivoy/BeatList/pkg/playlist)
 
 ## GUI
-##### if you find a bug, please report it using the `Report Bug` button in the Help menu.
+#### if you find a bug, please report it using the `Report Bug` button in the Help menu.
 Get the latest GUI app from [Releases](/releases/latest)
 
 

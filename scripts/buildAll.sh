@@ -10,41 +10,37 @@ fi
 
 echo cleaning
 rm -rf release/*
-mkdir -p release
 
 cd cmd/gui
 
-# fyne package -appVersion 0.1.2 -os windows -icon ../../Icon.png -name BeatList.exe -release -appID com.zivoy.beatlist
+buildFunc() {
+  echo
+  echo building "$1"
+  echo
+  fyne-cross "$1" -app-id $AppId -app-version $VERSION -arch="$2" -name "$3" . || (echo "$1" bild failed && return)
+
+  mkdir -p release
+  for f in ./fyne-cross/dist/*; do
+    file=$(cd "$f" && ls)
+    name="release/$(basename "$f")-$file"
+    name=${name//amd64/x64}
+    name=${name//386/x86}
+    mv "$f/$file" "$name"
+  done
+
+  rm -rf fyne-cross
+  echo -----------------------------------
+}
 
 # build windows
-fyne-cross windows -app-id $AppId -app-version $VERSION -arch=* -output $Name.exe .
-code=$?
-if [ $code -ne 0 ]
-then
-  echo windows build failed
-  exit $code
-fi
+buildFunc windows "*" $Name.exe
 
 # build linux
-fyne-cross linux -app-id $AppId -app-version $VERSION -arch=amd64,arm -name $Name .
-code=$?
-if [ $code -ne 0 ]
-then
-  echo linux build failed
-  exit $code
-fi
+buildFunc linux "amd64,arm" $Name
 
-cd ../..
-mv ./cmd/gui/fyne-cross .
+# build darwin
+buildFunc darwin "*" $Name
 
 echo moving files
-for f in ./fyne-cross/dist/*; do
-  file=$(cd "$f" && ls)
-  name="release/$(basename "$f")-$file"
-  name=${name//amd64/x64}
-  name=${name//386/x86}
-  cp "$f/$file" "$name"
-done
-
-rm -rf fyne-cross
+mv release ../../
 

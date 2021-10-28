@@ -3,7 +3,7 @@ module github.com/zivoy/BeatList/cmd/gui
 go 1.16
 
 require (
-	fyne.io/fyne/v2 v2.0.4
+	fyne.io/fyne/v2 v2.1.1
 	github.com/google/go-github v17.0.0+incompatible // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/hashicorp/go-version v1.3.0 // indirect

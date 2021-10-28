@@ -1,0 +1,8 @@
+Website = "https://github.com/zivoy/BeatList"
+
+[Details]
+  Icon = "Icon.png"
+  Name = "BeatList"
+  ID = "com.zivoy.beatlist"
+  Version = "1.0.0"
+  Build = 1

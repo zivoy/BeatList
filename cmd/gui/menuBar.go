@@ -32,7 +32,7 @@ func getMainMenu(a fyne.App) *fyne.MainMenu {
 			}),
 			fyne.NewMenuItem("Report Bug", func() {
 				bugURL, _ := url.Parse("https://github.com/zivoy/BeatList/issues/new")
-				bugInfo := fmt.Sprintf("\n\n\n### Enviorment\n**BeatList version:** %s\n**OS:** %s (%s)", VERSION, runtime.GOOS, runtime.GOARCH)
+				bugInfo := fmt.Sprintf("\n\n\n### Environment\n**BeatList version:** %s\n**OS:** %s (%s)", VERSION, runtime.GOOS, runtime.GOARCH)
 				if logs := readLogs(); logs != "" {
 					bugInfo = fmt.Sprintf("%s\n### Logs:\n```\n%s\n```", bugInfo, logs)
 				}

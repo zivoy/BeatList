@@ -34,6 +34,7 @@ var SongListCache map[string]SongListItemCache
 var itemSelected bool
 var itemSelectedId widget.ListItemID
 
+// todo simplfy
 func initSongList() *SongListUI {
 	songListUI = SongListUI{}
 

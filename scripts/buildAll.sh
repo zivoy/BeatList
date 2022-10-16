@@ -44,3 +44,12 @@ buildFunc darwin "*" $Name
 echo moving files
 mv release ../../
 
+#
+## build android
+#fyne-cross android -app-id $AppId -app-version $VERSION -name $Name .
+#code=$?
+#if [ $code -ne 0 ]
+#then
+#  echo android build failed
+#  exit $code
+#fi

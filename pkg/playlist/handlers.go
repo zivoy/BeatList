@@ -173,7 +173,12 @@ func (c *Cover) Rescale(size uint) {
 	}
 }
 
+var defaultImage image.Image
+
 // DefaultImage returns a default image
 func DefaultImage() image.Image {
-	return image.Rect(0, 0, 1, 1) //todo
+	if defaultImage == nil {
+		defaultImage = image.Rect(0, 0, 1, 1) //todo
+	}
+	return defaultImage
 }

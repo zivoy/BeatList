@@ -1,0 +1,24 @@
+0.1.5
+gui changes:
+- fix checks showing wrong characteristic on new select
+- added wrapping for check boxes
+- verify if url is s url in url fields
+
+
+
+![downloads](https://img.shields.io/github/downloads/zivoy/BeatList/v0.1.5/total)
+
+todo:
+github action that edits in binarys to tag
+further cleaning gui to folders
+https://github.com/rithik-b/MorePlaylists
+open from url
+recover last session as s button
+navigate and store beat saber folder
+download all songs from playlist into beatsaber folder
+make crashing log
+
+*pls let me scroll through songs faster
+*i have to find my beat saber folder every time when i want to save and open any playlists, very annoying
+*pls let me change the position of s map in the playlist with my arrow keys
+

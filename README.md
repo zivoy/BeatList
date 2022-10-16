@@ -26,10 +26,11 @@ Get the latest GUI app from [Releases](/releases/latest)
 #### features:
 - Keyboard shortcuts
   - <kbd>Ctrl</kbd> + <kbd>S</kbd> for saving current playlist
-  - <kbd>Ctrl</kbd> + <kbd>O</kbd> for opening s new playlist
-  - <kbd>Ctrl</kbd> + <kbd>N</kbd> for starting s new playlist
-- Add songs using the `+` icon and remove them using the `x` buttons under the songlist
-- Rearrange songs using the `↑` and `↓` arrows
+
+  - <kbd>Ctrl</kbd> + <kbd>O</kbd> for opening a new playlist
+  - <kbd>Ctrl</kbd> + <kbd>N</kbd> for starting a new playlist
+- Add songs using the `+` button and remove them using the `x` button under the songlist
+- Rearrange songs using the `↑` and `↓` arrows buttons
 
 [comment]: <> (##Examples)
 
